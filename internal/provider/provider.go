@@ -85,7 +85,10 @@ func (p *deedProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp 
 			"Every entity and relationship is written as a **declaration through one Deed source** (`terraform` by default). " +
 			"Terraform state holds only that declaration, never the merged view, so data contributed by other sources (imports, " +
 			"runtime observations, UI annotations) never causes a diff and survives `terraform destroy`.\n\n" +
-			"Authenticate with a user API token (`deed_at_…`) created by a signed-in user under *Account → API tokens*.",
+			"Authenticate with a user API token (`deed_at_…`). Tokens are created by a signed-in user (the account page of the Deed " +
+			"web UI, or `POST /api/v1/me/tokens` from an interactive session with a recent sign-in) and act with at most that user's " +
+			"roles. A token with the installation `admin` role can manage everything; a token capped at a project `editor` role can " +
+			"manage entities and relationships in that project only.",
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "Public URL of the Deed installation, for example `https://deed.example.com`. May also be set with the `" +

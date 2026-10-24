@@ -84,7 +84,8 @@ func (r *relationshipResource) Schema(_ context.Context, _ resource.SchemaReques
 			"id": idAttribute("Relationship ID (`rel_…`)."),
 			"project": schema.StringAttribute{
 				MarkdownDescription: "Project (name or ID) of the declaring source. Defaults to the project of the `from` entity; required " +
-					"when `from` is addressed by kind and name. Changing it forces a new resource (the same project by name or ID does not).",
+					"when `from` is addressed by kind and name. Changing it forces a new resource (the same project by name or ID does not). " +
+					"Import records the project ID.",
 				Optional: true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown(), sameProjectReplace("project_id")},
 				Validators:    []validator.String{stringvalidator.LengthBetween(1, 64)},
