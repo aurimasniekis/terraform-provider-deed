@@ -1,0 +1,8 @@
+terraform-provider-deed
+Copyright 2026 Aurimas Niekis
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Portions of this product are adapted from terraform-provider-porch
+(github.com/aurimasniekis/terraform-provider-porch), Copyright 2026 Aurimas Niekis, licensed under the Apache
+License, Version 2.0. Adapted files carry a provenance comment naming their origin.
