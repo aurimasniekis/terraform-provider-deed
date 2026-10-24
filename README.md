@@ -118,6 +118,11 @@ Grafana dashboard link on the service), the owning team, and the relationships b
 - **Destroy removes only Terraform's facet.** Imports, observations and annotations of the same entity survive; the
   entity is tombstoned only when no source contributes to it any more. Relationships work the same way: the resource
   manages the `terraform` assertion and treats the relationship as gone when that assertion is missing or not live.
+- **Relationships are declared from the `from` entity's project.** Deed records an assertion through the source of
+  the declaring project but updates and retracts it through the source of the relationship's (`from` entity's)
+  project, so `deed_relationship.project` must be that project (it defaults to it); other values are refused.
+- **The entity ID is the identity.** When Deed adopts an existing entity (an identity-key match against an entity
+  reported under another name, or an alias after a rename), the configured `kind` and `name` stay in the state.
 - **Adopting vs. conflicting.** Creating an entity that other sources already reported adopts it. If the `terraform`
   source already declares it — another resource or configuration — the apply fails with
   `Entity is already declared by source "terraform"` and the `terraform import` command to use instead.

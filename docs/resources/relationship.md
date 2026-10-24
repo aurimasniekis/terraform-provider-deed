@@ -45,7 +45,7 @@ resource "deed_relationship" "ups_powers_nas" {
 ### Optional
 
 - `attributes` (String) Relationship attributes as a JSON object string (use `jsonencode`), validated against the type's attributes schema. Compared semantically.
-- `project` (String) Project (name or ID) of the declaring source. Defaults to the project of the `from` entity; required when `from` is addressed by kind and name. Changing it forces a new resource (the same project by name or ID does not). Import records the project ID.
+- `project` (String) Project (name or ID) of the declaring source; it must be the project of the `from` entity (Deed updates and retracts assertions through that project's source). Defaults to it (recorded as the project name); required when `from` is addressed by kind and name. Changing it forces a new resource (the same project by name or ID does not). Import records the project name.
 
 ### Read-Only
 

@@ -251,8 +251,15 @@ func (m *entityModel) fill(d *client.Declaration) {
 		m.Project = types.StringValue(d.Project)
 	}
 	m.ProjectID = types.StringValue(d.ProjectID)
-	m.Kind = types.StringValue(d.Kind)
-	m.Name = types.StringValue(d.Name)
+	// The entity ID is the identity. Deed may answer with another name than the configured one (an identity-key match
+	// adopting an entity reported under another name, an alias after a rename or merge); keeping the configured kind
+	// and name avoids inconsistent results and replacement loops. They are taken from Deed only on import.
+	if m.Kind.IsNull() || m.Kind.IsUnknown() {
+		m.Kind = types.StringValue(d.Kind)
+	}
+	if m.Name.IsNull() || m.Name.IsUnknown() {
+		m.Name = types.StringValue(d.Name)
+	}
 	md := d.Metadata
 	m.DisplayName = strVal(md.DisplayName, m.DisplayName)
 	m.Description = strVal(md.Description, m.Description)

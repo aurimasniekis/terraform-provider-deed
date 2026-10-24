@@ -48,6 +48,8 @@ type APIError struct {
 
 	Method string `json:"-"`
 	Path   string `json:"-"`
+	// Problem is true when the body was a Deed problem document (not, say, a proxy's or router's plain 404 page).
+	Problem bool `json:"-"`
 }
 
 // Summary is the error without field details: "deed API POST /entities: 409 already_exists: …".
@@ -101,6 +103,8 @@ func decodeProblem(method, path string, resp *response) *APIError {
 	e := &APIError{}
 	if err := json.Unmarshal(resp.body, e); err != nil || (e.Code == "" && e.Detail == "" && e.Title == "") {
 		e = &APIError{Title: http.StatusText(resp.status)}
+	} else {
+		e.Problem = e.Code != ""
 	}
 	e.StatusCode = resp.status
 	e.Method, e.Path = method, path
@@ -142,10 +146,12 @@ func AsAPIError(err error) (*APIError, bool) {
 	return ae, ok
 }
 
-// IsNotFound reports whether err is a 404 problem.
+// IsNotFound reports whether err is a 404 not_found problem document from Deed. A 404 without one (a reverse proxy
+// or a route mismatch, e.g. a proxy that decodes %2F in a kind name) is not treated as "gone", so it cannot make
+// Terraform forget or "delete" an object that still exists.
 func IsNotFound(err error) bool {
 	ae, ok := AsAPIError(err)
-	return ok && ae.StatusCode == http.StatusNotFound
+	return ok && ae.StatusCode == http.StatusNotFound && ae.Problem && ae.Code == CodeNotFound
 }
 
 // IsPreconditionFailed reports whether err is a 412 problem (stale If-Match).
@@ -162,5 +168,6 @@ func HasCode(err error, code string) bool {
 
 // notFound is returned by lookups that scan a list and find nothing.
 func notFound(path, what string) *APIError {
-	return &APIError{StatusCode: http.StatusNotFound, Code: CodeNotFound, Detail: what + " not found", Method: http.MethodGet, Path: path}
+	return &APIError{StatusCode: http.StatusNotFound, Code: CodeNotFound, Detail: what + " not found", Method: http.MethodGet, Path: path,
+		Problem: true}
 }

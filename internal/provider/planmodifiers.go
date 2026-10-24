@@ -68,8 +68,10 @@ func (unknownWhenSchemaChanges) PlanModifyString(ctx context.Context, req planmo
 	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
 		return
 	}
+	// The configured value is used: an unconfigured (Optional+Computed) schema is still unknown in req.Plan while
+	// attribute plan modifiers run, which would make every unrelated change plan a new storage version.
 	var planSchema, stateSchema jsontypes.Normalized
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("schema"), &planSchema)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("schema"), &planSchema)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("schema"), &stateSchema)...)
 	if resp.Diagnostics.HasError() {
 		return

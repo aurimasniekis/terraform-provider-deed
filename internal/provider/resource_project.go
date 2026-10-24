@@ -140,6 +140,11 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if plan.input() == state.input() {
+		// Only force_destroy (a provider-side setting) changed.
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	pr, err := r.client.UpdateProject(ctx, state.ID.ValueString(), loadETag(ctx, req.Private), plan.input())
 	if err != nil {
 		apiError(&resp.Diagnostics, "Cannot update project", err, projectFields)

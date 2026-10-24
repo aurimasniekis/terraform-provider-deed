@@ -41,6 +41,9 @@ const base62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 const apiPrefix = "/api/v1"
 
+// inProgressRetries is the extra retry budget for 409 idempotency_in_progress.
+const inProgressRetries = 16
+
 // MaxBodyBytes caps every response body the client reads.
 const MaxBodyBytes = 8 << 20
 
@@ -406,7 +409,13 @@ func (c *Client) do(ctx context.Context, req *request) (*response, error) {
 		}
 		apiErr := decodeProblem(req.method, req.path, resp)
 		lastErr = apiErr
-		if attempt < maxRetries && retryable(req, resp.status, false, apiErr.Code) {
+		limit := maxRetries
+		if apiErr.Code == "idempotency_in_progress" && maxRetries > 0 {
+			// The first attempt is still running on the server (e.g. a client-side timeout during a long schema
+			// revalidation): wait for its outcome instead of failing an apply whose object will exist.
+			limit = maxRetries + inProgressRetries
+		}
+		if attempt < limit && retryable(req, resp.status, false, apiErr.Code) {
 			if serr := c.Sleep(ctx, c.backoff(attempt, resp.header)); serr != nil {
 				return nil, lastErr
 			}

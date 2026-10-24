@@ -353,3 +353,51 @@ func (c *Client) DeleteRelType(ctx context.Context, name string) error {
 	_, err := c.do(ctx, &request{method: http.MethodDelete, path: p("relationship-types", name)})
 	return err
 }
+
+// Me is the caller of the API.
+type Me struct {
+	UserID           string `json:"user_id,omitempty"`
+	InstallationRole string `json:"installation_role,omitempty"`
+	TokenID          string `json:"token_id,omitempty"`
+}
+
+// GetMe returns the authenticated principal.
+func (c *Client) GetMe(ctx context.Context) (*Me, error) {
+	out, _, err := call[Me](ctx, c, &request{method: http.MethodGet, path: "/me"})
+	return out, err
+}
+
+// APIToken describes one of the caller's API tokens (never its secret).
+type APIToken struct {
+	ID          string   `json:"id"`
+	ProjectRole string   `json:"project_role,omitempty"`
+	Projects    []string `json:"projects"`
+}
+
+// ListTokens lists the caller's API tokens.
+func (c *Client) ListTokens(ctx context.Context) ([]APIToken, error) {
+	out, _, err := call[[]APIToken](ctx, c, &request{method: http.MethodGet, path: "/me/tokens"})
+	if err != nil {
+		return nil, err
+	}
+	return *out, nil
+}
+
+// SeesAllProjects reports whether the token can read every project (no project restriction and no project-role cap),
+// so that an empty search result really means "none in the installation". Errors count as false.
+func (c *Client) SeesAllProjects(ctx context.Context) bool {
+	me, err := c.GetMe(ctx)
+	if err != nil || me.TokenID == "" || (me.InstallationRole != "owner" && me.InstallationRole != "admin" && me.InstallationRole != "auditor") {
+		return false
+	}
+	ts, err := c.ListTokens(ctx)
+	if err != nil {
+		return false
+	}
+	for _, t := range ts {
+		if t.ID == me.TokenID {
+			return len(t.Projects) == 0 && t.ProjectRole == ""
+		}
+	}
+	return false
+}

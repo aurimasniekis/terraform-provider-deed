@@ -390,7 +390,8 @@ func (r *kindResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	}
 	if client.HasCode(err, client.CodeConflict) {
 		live, lerr := r.client.ListEntities(ctx, client.EntityFilter{Kinds: []string{name}, Limit: 1})
-		if lerr == nil && len(live) == 0 {
+		// The search only covers projects the token can read: trust "no live entities" only from an unrestricted token.
+		if lerr == nil && len(live) == 0 && r.client.SeesAllProjects(ctx) {
 			resp.Diagnostics.AddWarning("Kind kept by Deed until its tombstoned entities are compacted",
 				fmt.Sprintf("Kind %q has no live entities, but Deed keeps a kind while tombstoned entities still reference it (they are "+
 					"compacted after the retention period). The kind was removed from the Terraform state and still exists in Deed; "+

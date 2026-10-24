@@ -2,11 +2,13 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -15,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/aurimasniekis/terraform-provider-deed/internal/client"
 )
@@ -58,7 +61,7 @@ func endpointAttribute(desc string) schema.SingleNestedAttribute {
 		MarkdownDescription: desc + " Set `id`, or `kind` and `name` (plus `project` for an entity in another project). Changing it " +
 			"forces a new resource.",
 		Required:      true,
-		PlanModifiers: []planmodifier.Object{objectplanmodifier.RequiresReplace()},
+		PlanModifiers: []planmodifier.Object{endpointReplace()},
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{MarkdownDescription: "Entity ID (`ent_…`), e.g. `deed_entity.x.id`.", Optional: true, Computed: true,
 				PlanModifiers: keep},
@@ -72,6 +75,86 @@ func endpointAttribute(desc string) schema.SingleNestedAttribute {
 	}
 }
 
+// endpointReplace forces replacement when an endpoint changes, except when the only difference is an endpoint
+// project that the state does not record (after import): the endpoint is still the same entity.
+func endpointReplace() planmodifier.Object {
+	desc := "Changing the endpoint forces a new resource."
+	return objectplanmodifier.RequiresReplaceIf(func(ctx context.Context, req planmodifier.ObjectRequest, resp *objectplanmodifier.RequiresReplaceIfFuncResponse) {
+		var plan, state endpointModel
+		resp.Diagnostics.Append(req.PlanValue.As(ctx, &plan, basetypes.ObjectAsOptions{UnhandledUnknownAsEmpty: false})...)
+		resp.Diagnostics.Append(req.StateValue.As(ctx, &state, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			resp.RequiresReplace = true
+			return
+		}
+		same := plan.ID.Equal(state.ID) && plan.Kind.Equal(state.Kind) && plan.Name.Equal(state.Name) &&
+			(state.Project.IsNull() || plan.Project.Equal(state.Project))
+		resp.RequiresReplace = !same
+	}, desc, desc)
+}
+
+const sourceIDKey = "source_id"
+
+// assertionFor returns this resource's live assertion: matched by the source ID recorded at creation when known (two
+// projects can each have a source with the same name), otherwise by source name.
+func assertionFor(ctx context.Context, rel *client.Relation, source string, p privateState) *client.Assertion {
+	id := ""
+	if p != nil {
+		if b, d := p.GetKey(ctx, sourceIDKey); !d.HasError() && len(b) > 0 {
+			_ = json.Unmarshal(b, &id)
+		}
+	}
+	for i := range rel.Assertions {
+		a := &rel.Assertions[i]
+		if a.Live && a.Source == source && (id == "" || a.SourceID == id) {
+			return a
+		}
+	}
+	return nil
+}
+
+func saveSourceID(ctx context.Context, p privateState, a *client.Assertion) diag.Diagnostics {
+	if p == nil || a == nil || a.SourceID == "" {
+		return nil
+	}
+	b, _ := json.Marshal(a.SourceID)
+	return p.SetKey(ctx, sourceIDKey, b)
+}
+
+// checkSourceProject refuses a declaring project other than the from entity's: Deed records the assertion through
+// the source of the given project, but reads and retracts assertions through the source of the relationship's
+// (from entity's) project, so such an assertion could never be updated or removed by this resource.
+func (r *relationshipResource) checkSourceProject(ctx context.Context, plan *relationshipModel) error {
+	if plan.Project.IsNull() || plan.Project.IsUnknown() || plan.Project.ValueString() == "" || plan.From == nil {
+		return nil
+	}
+	src, err := r.client.GetProject(ctx, plan.Project.ValueString())
+	if err != nil {
+		return err
+	}
+	fromProject := src.ID
+	switch {
+	case plan.From.ID.ValueString() != "":
+		e, err := r.client.GetEntity(ctx, plan.From.ID.ValueString())
+		if err != nil {
+			return err
+		}
+		fromProject = e.Metadata.ProjectID
+	case plan.From.Project.ValueString() != "":
+		fp, err := r.client.GetProject(ctx, plan.From.Project.ValueString())
+		if err != nil {
+			return err
+		}
+		fromProject = fp.ID
+	}
+	if fromProject != src.ID {
+		return fmt.Errorf("project %q is not the project of the from entity; declare the relationship from the from entity's project "+
+			"(omit project, or swap from and to): Deed updates and retracts assertions through the source of the from entity's project",
+			plan.Project.ValueString())
+	}
+	return nil
+}
+
 func (r *relationshipResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: stateSchemaVersion,
@@ -83,9 +166,10 @@ func (r *relationshipResource) Schema(_ context.Context, _ resource.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"id": idAttribute("Relationship ID (`rel_…`)."),
 			"project": schema.StringAttribute{
-				MarkdownDescription: "Project (name or ID) of the declaring source. Defaults to the project of the `from` entity; required " +
+				MarkdownDescription: "Project (name or ID) of the declaring source; it must be the project of the `from` entity (Deed " +
+					"updates and retracts assertions through that project's source). Defaults to it (recorded as the project name); required " +
 					"when `from` is addressed by kind and name. Changing it forces a new resource (the same project by name or ID does not). " +
-					"Import records the project ID.",
+					"Import records the project name.",
 				Optional: true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown(), sameProjectReplace("project_id")},
 				Validators:    []validator.String{stringvalidator.LengthBetween(1, 64)},
@@ -107,6 +191,12 @@ func (r *relationshipResource) Schema(_ context.Context, _ resource.SchemaReques
 }
 
 func (r *relationshipResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var fromObj, toObj types.Object
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("from"), &fromObj)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("to"), &toObj)...)
+	if resp.Diagnostics.HasError() || fromObj.IsUnknown() || toObj.IsUnknown() {
+		return
+	}
 	var m relationshipModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &m)...)
 	if resp.Diagnostics.HasError() {
@@ -183,8 +273,17 @@ func (r *relationshipResource) Create(ctx context.Context, req resource.CreateRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if err := r.checkSourceProject(ctx, &plan); err != nil {
+		if _, ok := client.AsAPIError(err); ok {
+			apiError(&resp.Diagnostics, "Cannot declare relationship", err, relationshipFields)
+		} else {
+			resp.Diagnostics.AddAttributeError(path.Root("project"), "Unsupported declaring project", err.Error())
+		}
+		return
+	}
 	project := ""
-	if !plan.Project.IsUnknown() {
+	projectComputed := plan.Project.IsUnknown() || plan.Project.IsNull()
+	if !projectComputed {
 		project = plan.Project.ValueString()
 	}
 	rel, err := r.client.CreateRelation(ctx, client.RelationCreate{Project: project, Source: r.source, Type: plan.Type.ValueString(),
@@ -207,7 +306,14 @@ func (r *relationshipResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 	plan.fill(rel, a)
+	if projectComputed {
+		// Record the project name, the documented form (and what import records).
+		if pr, err := r.client.GetProject(ctx, rel.ProjectID); err == nil {
+			plan.Project = types.StringValue(pr.Name)
+		}
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	resp.Diagnostics.Append(saveSourceID(ctx, resp.Private, a)...)
 }
 
 func (r *relationshipResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -225,7 +331,7 @@ func (r *relationshipResource) Read(ctx context.Context, req resource.ReadReques
 		apiError(&resp.Diagnostics, "Cannot read relationship", err, nil)
 		return
 	}
-	a := rel.LiveAssertion(r.source)
+	a := assertionFor(ctx, rel, r.source, req.Private)
 	if a == nil {
 		// Other sources may still assert it, but this source's assertion is gone: plan to assert it again.
 		resp.State.RemoveResource(ctx)
@@ -247,7 +353,7 @@ func (r *relationshipResource) Update(ctx context.Context, req resource.UpdateRe
 		apiError(&resp.Diagnostics, "Cannot update relationship", err, relationshipFields)
 		return
 	}
-	a := rel.LiveAssertion(r.source)
+	a := assertionFor(ctx, rel, r.source, req.Private)
 	if a == nil {
 		resp.Diagnostics.AddError("Relationship assertion missing", "Deed does not report a live assertion of "+rel.ID+" by source "+r.source+".")
 		return
@@ -279,5 +385,11 @@ func (r *relationshipResource) ImportState(ctx context.Context, req resource.Imp
 				"and apply the resource instead: creating it adds this source's assertion to the existing relationship.", req.ID, r.source))
 		return
 	}
+	a := rel.LiveAssertion(r.source)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), rel.ID)...)
+	// Record the project name (the documented form of `project`), so a configuration naming it plans no replacement.
+	if pr, err := r.client.GetProject(ctx, rel.ProjectID); err == nil {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), pr.Name)...)
+	}
+	resp.Diagnostics.Append(saveSourceID(ctx, resp.Private, a)...)
 }

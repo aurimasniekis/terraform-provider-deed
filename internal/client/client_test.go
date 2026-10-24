@@ -546,3 +546,34 @@ func TestListEntitiesFollowsCursor(t *testing.T) {
 		t.Errorf("queries %v", queries)
 	}
 }
+
+func TestNotFoundNeedsAProblemDocument(t *testing.T) {
+	c, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/kinds/plain" {
+			http.NotFound(w, r) // a router or proxy 404, not Deed's
+			return
+		}
+		writeProblem(w, http.StatusNotFound, CodeNotFound, "kind not found", nil)
+	}))
+	_, err := c.GetKind(context.Background(), "plain")
+	if err == nil || IsNotFound(err) {
+		t.Fatalf("plain 404 treated as not found: %v", err)
+	}
+	if _, err := c.GetKind(context.Background(), "gone"); !IsNotFound(err) {
+		t.Fatalf("problem 404: %v", err)
+	}
+}
+
+func TestIdempotencyInProgressGetsALongerBudget(t *testing.T) {
+	var calls atomic.Int32
+	c, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if calls.Add(1) <= 10 {
+			writeProblem(w, http.StatusConflict, "idempotency_in_progress", "retry shortly", nil)
+			return
+		}
+		writeJSON(w, http.StatusCreated, `"1"`, Project{ID: "prj_1", ResourceVersion: 1})
+	}))
+	if _, err := c.CreateProject(context.Background(), ProjectInput{Name: "p"}); err != nil || calls.Load() != 11 {
+		t.Fatalf("got %v after %d calls", err, calls.Load())
+	}
+}

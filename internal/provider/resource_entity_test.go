@@ -96,6 +96,11 @@ func TestAccEntity_lifecycle(t *testing.T) {
 			{ResourceName: "deed_entity.nas", ImportState: true, ImportStateVerify: true},
 			{ResourceName: "deed_entity.nas", ImportState: true, ImportStateVerify: true,
 				ImportStateIdFunc: importID("deed_entity.nas", "project", "kind", "name")},
+			// Forget the resource (without destroying it), import it by natural key and plan: no change.
+			{Config: projectConfig(project) + "\nremoved {\n  from = deed_entity.nas\n  lifecycle {\n    destroy = false\n  }\n}\n"},
+			{Config: entityConfig(project, host, "NAS (renamed)"), ResourceName: "deed_entity.nas", ImportState: true, ImportStatePersist: true,
+				ImportStateId: project + "/server/nas-01"},
+			{Config: entityConfig(project, host, "NAS (renamed)"), ConfigPlanChecks: expectEmptyPlan()},
 			// Out-of-band change of the declaration: refresh shows drift, apply restores it.
 			{
 				PreConfig: oob(t, func(ctx context.Context, c *client.Client) error {
@@ -362,5 +367,58 @@ resource "deed_entity" "x" {
 				return nil
 			},
 		}},
+	})
+}
+
+// TestAccEntity_adoptsByIdentityKey declares a server whose hostname (an identity key of the server kind) matches an
+// entity another source reported under a different name: Deed adopts that entity, and the configured name stays in
+// the state without inconsistencies or replacement loops.
+func TestAccEntity_adoptsByIdentityKey(t *testing.T) {
+	testAccPreCheck(t)
+	project := randName("acc-adopt")
+	host := randName("pve") + ".example.com"
+	cfg := projectConfig(project) + fmt.Sprintf(`
+resource "deed_entity" "pve" {
+  project = deed_project.p.name
+  kind    = "server"
+  name    = "pve-01"
+  spec    = jsonencode({ hostname = %q })
+}
+`, host)
+	var discovered string
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: projectConfig(project),
+				Check: apiCheck(t, func(ctx context.Context, c *client.Client, _ *terraform.State) error {
+					d, err := c.CreateEntity(ctx, client.EntityCreate{Project: project, Source: "api", Kind: "server", Name: "pve01",
+						Spec: json.RawMessage(`{"hostname":"` + host + `"}`)})
+					if err != nil {
+						return err
+					}
+					discovered = d.EntityID
+					return nil
+				}),
+			},
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("deed_entity.pve", "name", "pve-01"),
+					func(s *terraform.State) error {
+						id, err := stateAttr(s, "deed_entity.pve", "id")
+						if err != nil {
+							return err
+						}
+						if id != discovered {
+							return fmt.Errorf("declared %s, expected the adopted entity %s", id, discovered)
+						}
+						return nil
+					},
+				),
+			},
+			{Config: cfg, ConfigPlanChecks: expectEmptyPlan()},
+		},
 	})
 }

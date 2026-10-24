@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -76,7 +77,7 @@ resource "deed_relationship" "owner" {
 func TestAccRelationship_lifecycle(t *testing.T) {
 	project := randName("acc-rel")
 	relType := "example.com/backs_up_" + acctest.RandStringFromCharSet(6, "abcdefghijklmnopqrstuvwxyz")
-	var relID string
+	var relID, ownerID string
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -101,11 +102,12 @@ func TestAccRelationship_lifecycle(t *testing.T) {
 				Config: relationshipConfig(project, relType, `jsonencode({ schedule = "daily" })`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					capture("deed_relationship.backup", "id", &relID),
+					capture("deed_relationship.owner", "id", &ownerID),
 					resource.TestMatchResourceAttr("deed_relationship.backup", "id", idRE("rel")),
 					resource.TestCheckResourceAttrPair("deed_relationship.backup", "from.id", "deed_entity.nas", "id"),
 					resource.TestCheckResourceAttr("deed_relationship.backup", "from.kind", "server"),
 					resource.TestCheckResourceAttr("deed_relationship.backup", "to.name", "pve-01"),
-					resource.TestCheckResourceAttrPair("deed_relationship.backup", "project", "deed_project.p", "id"),
+					resource.TestCheckResourceAttrPair("deed_relationship.backup", "project", "deed_project.p", "name"),
 					resource.TestCheckResourceAttrPair("deed_relationship.owner", "to.id", "deed_entity.ops", "id"),
 					resource.TestCheckResourceAttr("deed_relationship_type.backs_up", "directed", "true"),
 					resource.TestCheckResourceAttr("deed_relationship_type.backs_up", "cardinality", "many"),
@@ -128,9 +130,12 @@ func TestAccRelationship_lifecycle(t *testing.T) {
 				}),
 			},
 			{ResourceName: "deed_relationship.backup", ImportState: true, ImportStateVerify: true},
-			{ResourceName: "deed_relationship.owner", ImportState: true, ImportStateVerify: true,
-				// Import records the project ID; the configuration names the project.
-				ImportStateVerifyIgnore: []string{"project"}},
+			{ResourceName: "deed_relationship.owner", ImportState: true, ImportStateVerify: true},
+			// Forget an imported relationship (endpoints by kind and name, declaring project by name), import it, plan: no change.
+			{Config: withoutOwner(relationshipConfig(project, relType, `jsonencode({ schedule = "hourly" })`))},
+			{Config: relationshipConfig(project, relType, `jsonencode({ schedule = "hourly" })`), ResourceName: "deed_relationship.owner",
+				ImportState: true, ImportStatePersist: true, ImportStateIdFunc: func(*terraform.State) (string, error) { return ownerID, nil }},
+			{Config: relationshipConfig(project, relType, `jsonencode({ schedule = "hourly" })`), ConfigPlanChecks: expectEmptyPlan()},
 			{ResourceName: "deed_relationship_type.backs_up", ImportState: true, ImportStateVerify: true},
 			// Out-of-band retraction of the Terraform assertion: the next plan asserts it again.
 			{
@@ -210,4 +215,55 @@ resource "deed_relationship" "r" {
 			},
 		},
 	})
+}
+
+func TestAccRelationship_foreignDeclaringProject(t *testing.T) {
+	a, b := randName("acc-rpa"), randName("acc-rpb")
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{{
+			Config: fmt.Sprintf(`
+resource "deed_project" "a" {
+  name = %q
+}
+
+resource "deed_project" "b" {
+  name = %q
+}
+
+resource "deed_entity" "x" {
+  project = deed_project.a.name
+  kind    = "service"
+  name    = "x"
+}
+
+resource "deed_relationship" "r" {
+  project    = deed_project.b.name
+  type       = "depends_on"
+  from       = { id = deed_entity.x.id }
+  to         = { kind = "service", name = "y", project = deed_project.b.name }
+  depends_on = [deed_entity.x]
+}
+`, a, b),
+			ExpectError: errRE("Unsupported declaring project", "not the project of the from entity"),
+		}},
+	})
+}
+
+const ownerBlock = `# By natural key (needs the declaring project).
+resource "deed_relationship" "owner" {
+  project = deed_project.p.name
+  type    = "owned_by"
+  from    = { kind = "server", name = deed_entity.pve.name }
+  to      = { kind = "group", name = deed_entity.ops.name }
+}
+`
+
+// withoutOwner replaces the owner relationship with a removed block that forgets it without destroying it.
+func withoutOwner(cfg string) string {
+	if !strings.Contains(cfg, ownerBlock) {
+		panic("owner block not found")
+	}
+	return strings.Replace(cfg, ownerBlock, "removed {\n  from = deed_relationship.owner\n  lifecycle {\n    destroy = false\n  }\n}\n", 1)
 }
