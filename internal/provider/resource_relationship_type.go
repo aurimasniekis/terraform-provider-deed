@@ -241,17 +241,6 @@ func (r *relTypeResource) Delete(ctx context.Context, req resource.DeleteRequest
 	if err == nil || client.IsNotFound(err) {
 		return
 	}
-	if client.HasCode(err, client.CodeConflict) {
-		live, lerr := r.client.ListRelations(ctx, client.RelationFilter{Types: []string{name}})
-		// The search only covers projects the token can read: trust "no live relationships" only from an unrestricted token.
-		if lerr == nil && len(live) == 0 && r.client.SeesAllProjects(ctx) {
-			resp.Diagnostics.AddWarning("Relationship type kept by Deed until retracted relationships are compacted",
-				fmt.Sprintf("Relationship type %q has no live relationships, but Deed keeps a type while retracted relationships still "+
-					"reference it (they are compacted after the retention period). It was removed from the Terraform state and still exists "+
-					"in Deed; delete it later in Deed, or import it to manage it again (terraform import <address> %s).", name, name))
-			return
-		}
-	}
 	apiError(&resp.Diagnostics, "Cannot delete relationship type", err, nil)
 }
 

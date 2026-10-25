@@ -20,7 +20,7 @@ resource "deed_relationship_type" "powers" {
   description  = "Electrical power supply."
   from_kinds   = ["example.com/ups"]
   to_kinds     = ["server", "storage", "network"]
-  impact       = "forward" # losing the UPS affects what it powers
+  impact       = "reverse" # what it powers depends on the UPS: losing the UPS affects them
 
   attributes_schema = jsonencode({
     type = "object"

@@ -70,8 +70,7 @@ func (r *kindResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 			"apply fails with the compatibility problems. Set `breaking = true` and a `migration` mode to publish an incompatible " +
 			"schema: `revalidate` refuses the publication if any entity fails validation, `mark_invalid` publishes it and flags failing " +
 			"entities as invalid (they are never dropped).\n\n" +
-			"Deed keeps a kind while entities that used it are only tombstoned (until they are compacted); destroying such a kind " +
-			"removes it from the Terraform state with a warning and leaves the definition in Deed.",
+			"Destroying a kind fails while live entities still use it; entities that are only tombstoned do not block it.",
 		Attributes: map[string]schema.Attribute{
 			"id": idAttribute("The kind name."),
 			"name": requiredImmutableString("Kind name: a lowercase identifier, optionally prefixed by a domain (`example.com/ups`).",
@@ -387,17 +386,6 @@ func (r *kindResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	err := r.client.DeleteKind(ctx, name)
 	if err == nil || client.IsNotFound(err) {
 		return
-	}
-	if client.HasCode(err, client.CodeConflict) {
-		live, lerr := r.client.ListEntities(ctx, client.EntityFilter{Kinds: []string{name}, Limit: 1})
-		// The search only covers projects the token can read: trust "no live entities" only from an unrestricted token.
-		if lerr == nil && len(live) == 0 && r.client.SeesAllProjects(ctx) {
-			resp.Diagnostics.AddWarning("Kind kept by Deed until its tombstoned entities are compacted",
-				fmt.Sprintf("Kind %q has no live entities, but Deed keeps a kind while tombstoned entities still reference it (they are "+
-					"compacted after the retention period). The kind was removed from the Terraform state and still exists in Deed; "+
-					"delete it later in Deed, or import it to manage it again (terraform import <address> %s).", name, name))
-			return
-		}
 	}
 	apiError(&resp.Diagnostics, "Cannot delete kind", err, nil)
 }

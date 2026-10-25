@@ -5,7 +5,7 @@ subcategory: ""
 description: |-
   A custom Deed kind: an entity type with a versioned JSON Schema (2020-12) for spec. Built-in kinds (server, service, repository, …) are owned by Deed and cannot be managed; read them with the deed_kind data source. Requires an installation admin (or owner) token.
   Changing schema publishes a new schema version that becomes the storage version. Deed accepts a non-breaking version only when it is backward compatible with the current one and every existing entity validates; otherwise the apply fails with the compatibility problems. Set breaking = true and a migration mode to publish an incompatible schema: revalidate refuses the publication if any entity fails validation, mark_invalid publishes it and flags failing entities as invalid (they are never dropped).
-  Deed keeps a kind while entities that used it are only tombstoned (until they are compacted); destroying such a kind removes it from the Terraform state with a warning and leaves the definition in Deed.
+  Destroying a kind fails while live entities still use it; entities that are only tombstoned do not block it.
 ---
 
 # deed_kind (Resource)
@@ -14,7 +14,7 @@ A custom Deed kind: an entity type with a versioned JSON Schema (2020-12) for `s
 
 Changing `schema` **publishes a new schema version** that becomes the storage version. Deed accepts a non-breaking version only when it is backward compatible with the current one and every existing entity validates; otherwise the apply fails with the compatibility problems. Set `breaking = true` and a `migration` mode to publish an incompatible schema: `revalidate` refuses the publication if any entity fails validation, `mark_invalid` publishes it and flags failing entities as invalid (they are never dropped).
 
-Deed keeps a kind while entities that used it are only tombstoned (until they are compacted); destroying such a kind removes it from the Terraform state with a warning and leaves the definition in Deed.
+Destroying a kind fails while live entities still use it; entities that are only tombstoned do not block it.
 
 ## Example Usage
 

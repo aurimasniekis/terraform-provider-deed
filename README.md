@@ -5,7 +5,7 @@ relationship map — as code: projects and their members, custom kinds (with ver
 types, and above all the **entities** of your infrastructure and the **relationships** between them.
 
 Built with [terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework) (protocol 6) and
-tested against Deed commit [`19fef4b`](https://github.com/aurimasniekis/go-deed/commit/19fef4b2e68da4f4748e24eecc7105d6cacbbca2)
+tested against Deed commit [`809a798`](https://github.com/aurimasniekis/go-deed/commit/809a7981358783b3c76630fbf666f9d11597b5fb)
 with Terraform 1.11 (it works with every Deed since [`6422bee`](https://github.com/aurimasniekis/go-deed/commit/6422bee0de0cff83546894e5f713eaf9c493dff8)).
 
 ## Repository name and source address
@@ -143,16 +143,14 @@ Grafana dashboard link on the service), the owning team, and the relationships b
   responses are capped at 8 MiB, and request/response bodies are never logged.
 - **Diagnostics.** Problem documents (RFC 9457) are turned into diagnostics; per-field validation errors point at the
   offending attribute (for example `labels["Team"]` or `links[1].url`).
-- **Tombstones and definitions.** Since Deed [`40311d6`](https://github.com/aurimasniekis/go-deed/commit/40311d64183c)
-  deleting a kind or relationship type is blocked only by live users (tombstones are compacted with it). Older Deed
-  refuses while tombstoned entities or retracted relationships still reference it; the provider then removes the
-  definition from the state with a warning and leaves it in Deed.
+- **Tombstones and definitions.** Deleting a kind or relationship type is blocked only by live users; tombstoned
+  entities and retracted relationships are compacted with it.
 
 ## Compatibility
 
 | Provider | Deed | API | Terraform |
 |---|---|---|---|
-| 0.1.x (unreleased) | ≥ [`6422bee`](https://github.com/aurimasniekis/go-deed/commit/6422bee0de0cff83546894e5f713eaf9c493dff8) (first release ≥ 0.1.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
+| 0.1.x (unreleased) | ≥ [`40311d6`](https://github.com/aurimasniekis/go-deed/commit/40311d64183ceebe9963a457342a6392e99d0f64) (first release ≥ 0.1.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 
 The provider and Deed are versioned and released independently. The provider only talks to `/api/v1`, which changes
 additively, so a provider release works with every Deed release at or above its minimum; see go-deed's
