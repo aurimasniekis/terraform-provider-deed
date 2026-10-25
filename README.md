@@ -5,8 +5,8 @@ relationship map — as code: projects and their members, custom kinds (with ver
 types, and above all the **entities** of your infrastructure and the **relationships** between them.
 
 Built with [terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework) (protocol 6) and
-tested against Deed commit [`6422bee`](https://github.com/aurimasniekis/go-deed/commit/6422bee0de0cff83546894e5f713eaf9c493dff8)
-with Terraform 1.11.
+tested against Deed commit [`19fef4b`](https://github.com/aurimasniekis/go-deed/commit/19fef4b2e68da4f4748e24eecc7105d6cacbbca2)
+with Terraform 1.11 (it works with every Deed since [`6422bee`](https://github.com/aurimasniekis/go-deed/commit/6422bee0de0cff83546894e5f713eaf9c493dff8)).
 
 ## Repository name and source address
 
@@ -81,9 +81,9 @@ than `v1` or a release older than the supported minimum.
 - projects, kinds and relationship types need a token with the installation `admin` role (owners can issue one);
 - entities, relationships and project members need the project `editor` (members: `admin`) role.
 
-> Deed refuses unknown `DEED_*` environment variables at start-up. If you run the Deed server from a shell that also
-> exports the provider's `DEED_ENDPOINT`/`DEED_TOKEN`/`DEED_SOURCE`, unset them for the server process
-> (`DEED_SOURCE` is not on the server's allow-list at the pinned commit).
+> Deed refuses unknown `DEED_*` environment variables at start-up. Deed before
+> [`40311d6`](https://github.com/aurimasniekis/go-deed/commit/40311d64183c) did not know the provider's `DEED_SOURCE`
+> and `DEED_CA_FILE`; with such a server, unset them for the server process.
 
 ## Resources and data sources
 
@@ -143,9 +143,10 @@ Grafana dashboard link on the service), the owning team, and the relationships b
   responses are capped at 8 MiB, and request/response bodies are never logged.
 - **Diagnostics.** Problem documents (RFC 9457) are turned into diagnostics; per-field validation errors point at the
   offending attribute (for example `labels["Team"]` or `links[1].url`).
-- **Tombstones keep definitions.** Deed refuses to delete a kind or relationship type while tombstoned entities or
-  retracted relationships still reference it (until compaction after the retention period). Destroying such a
-  definition removes it from the state with a warning and leaves it in Deed.
+- **Tombstones and definitions.** Since Deed [`40311d6`](https://github.com/aurimasniekis/go-deed/commit/40311d64183c)
+  deleting a kind or relationship type is blocked only by live users (tombstones are compacted with it). Older Deed
+  refuses while tombstoned entities or retracted relationships still reference it; the provider then removes the
+  definition from the state with a warning and leaves it in Deed.
 
 ## Compatibility
 
