@@ -74,3 +74,11 @@ new minor version called out in the changelog); state-format changes additionall
 "State schema versions" in the README).
 
 If a release is broken, do not delete or re-tag it (the Registry caches versions); publish a fixed patch release.
+
+## Dry run record
+2026-10-25 at `b2645ab`: `goreleaser release --snapshot --clean --skip=publish` with a throwaway GPG key in a
+temporary keyring (deleted afterwards) produced the nine platform zips, `SHA256SUMS` listing them and the
+`_manifest.json` (protocol `6.0`), and `SHA256SUMS.sig`, which `gpg --verify` accepted. Terraform 1.11.4 installed the
+darwin/arm64 zip from a filesystem mirror (`provider_installation { filesystem_mirror { … } }`) and
+`terraform providers schema -json` listed all six resources and six data sources. Nothing was published; the release
+key, repository secrets and Registry namespace still have to be set up as described above.
