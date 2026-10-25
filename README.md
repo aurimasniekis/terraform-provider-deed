@@ -5,7 +5,7 @@ relationship map — as code: projects and their members, custom kinds (with ver
 types, and above all the **entities** of your infrastructure and the **relationships** between them.
 
 Built with [terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework) (protocol 6) and
-tested against Deed commit [`96f0838`](https://github.com/aurimasniekis/go-deed/commit/96f08382e13491996365e120e8b5b696dbe9020b)
+tested against Deed commit [`569e2db`](https://github.com/aurimasniekis/go-deed/commit/569e2db3228c989770a4d3381a82c5ca3f7d3017)
 with Terraform 1.11 (it works with every Deed since [`6422bee`](https://github.com/aurimasniekis/go-deed/commit/6422bee0de0cff83546894e5f713eaf9c493dff8)).
 
 ## Repository name and source address
