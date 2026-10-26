@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -49,6 +51,7 @@ type kindModel struct {
 	Color          types.String         `tfsdk:"color"`
 	IdentityKeys   [][]string           `tfsdk:"identity_keys"`
 	Deprecated     types.Bool           `tfsdk:"deprecated"`
+	Grouping       types.Set            `tfsdk:"grouping_relationship_types"`
 	Schema         jsontypes.Normalized `tfsdk:"schema"`
 	Breaking       types.Bool           `tfsdk:"breaking"`
 	Migration      types.String         `tfsdk:"migration"`
@@ -110,6 +113,15 @@ func (r *kindResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Optional:    true, Computed: true,
 				Default:    listdefault.StaticValue(types.ListValueMust(types.ListType{ElemType: types.StringType}, []attr.Value{})),
 				Validators: []validator.List{listvalidator.SizeAtMost(8), identityKeysValidator{}},
+			},
+			"grouping_relationship_types": schema.SetAttribute{
+				MarkdownDescription: "Map grouping (Deed 0.3.0+): relationship types followed outward to an entity of this kind, so the " +
+					"map can group entities under the nearest one they reach (for example `[\"located_in\"]` for a rack row). An empty " +
+					"set removes the grouping; omit the argument to leave it as set in Deed.",
+				ElementType: types.StringType,
+				Optional:    true, Computed: true,
+				Validators:    []validator.Set{setvalidator.SizeAtMost(8)},
+				PlanModifiers: []planmodifier.Set{setplanmodifier.UseStateForUnknown()},
 			},
 			"deprecated": schema.BoolAttribute{
 				MarkdownDescription: "Mark the kind deprecated (default `false`).",
@@ -218,6 +230,11 @@ func (m *kindModel) fill(k *client.Kind) {
 		m.IdentityKeys = append(m.IdentityKeys, append([]string{}, key...))
 	}
 	m.Deprecated = types.BoolValue(k.Deprecated)
+	groups := []string{}
+	if k.Grouping != nil {
+		groups = append(groups, k.Grouping.RelationshipTypes...)
+	}
+	m.Grouping, _ = types.SetValueFrom(context.Background(), types.StringType, groups)
 	if s := k.StorageSchema(); len(s) > 0 {
 		m.Schema = jsontypes.NewNormalizedValue(string(s))
 	}
@@ -228,9 +245,15 @@ func (m *kindModel) fill(k *client.Kind) {
 }
 
 func (m *kindModel) input() client.KindInput {
-	return client.KindInput{Name: m.Name.ValueString(), Group: m.Group.ValueString(), Title: m.Title.ValueString(),
+	in := client.KindInput{Name: m.Name.ValueString(), Group: m.Group.ValueString(), Title: m.Title.ValueString(),
 		Plural: m.Plural.ValueString(), Description: m.Description.ValueString(), Icon: m.Icon.ValueString(), Color: m.Color.ValueString(),
 		IdentityKeys: m.IdentityKeys, Deprecated: m.Deprecated.ValueBool()}
+	if !m.Grouping.IsNull() && !m.Grouping.IsUnknown() {
+		rels := []string{}
+		_ = m.Grouping.ElementsAs(context.Background(), &rels, false)
+		in.Grouping = &client.KindGrouping{RelationshipTypes: rels}
+	}
+	return in
 }
 
 func builtinKindError(diags *diag.Diagnostics, name string) {
@@ -293,7 +316,8 @@ func displayChanged(plan, state *kindModel) bool {
 	return !plan.Group.Equal(state.Group) || !plan.Title.Equal(state.Title) || !plan.Plural.Equal(state.Plural) ||
 		plan.Description.ValueString() != state.Description.ValueString() || plan.Icon.ValueString() != state.Icon.ValueString() ||
 		plan.Color.ValueString() != state.Color.ValueString() || !plan.Deprecated.Equal(state.Deprecated) ||
-		fmt.Sprint(plan.IdentityKeys) != fmt.Sprint(state.IdentityKeys)
+		fmt.Sprint(plan.IdentityKeys) != fmt.Sprint(state.IdentityKeys) ||
+		(!plan.Grouping.IsUnknown() && !plan.Grouping.Equal(state.Grouping))
 }
 
 func (r *kindResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

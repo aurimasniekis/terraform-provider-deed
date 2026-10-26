@@ -62,6 +62,7 @@ resource "deed_kind" "ups" {
 - `deprecated` (Boolean) Mark the kind deprecated (default `false`).
 - `description` (String) Description.
 - `group` (String) Catalog group the kind is listed under (default `custom`).
+- `grouping_relationship_types` (Set of String) Map grouping (Deed 0.3.0+): relationship types followed outward to an entity of this kind, so the map can group entities under the nearest one they reach (for example `["located_in"]` for a rack row). An empty set removes the grouping; omit the argument to leave it as set in Deed.
 - `icon` (String) Icon as `pack:name` with pack `tabler`, `simple-icons`, `thesvg` or `custom`, e.g. `tabler:battery`.
 - `identity_keys` (List of List of String) Identity keys: each key is a list of 1–4 JSON pointers (`/spec/…` or `/metadata/…`). Sources that report an entity whose key values match exactly one existing entity converge on it instead of creating a duplicate.
 - `migration` (String) Migration mode of a breaking publication: `revalidate` (refuse when an existing entity fails) or `mark_invalid` (flag failing entities). Only used when `schema` changes with `breaking = true`.

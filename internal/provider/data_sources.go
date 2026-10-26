@@ -155,6 +155,7 @@ type kindDSModel struct {
 	Color          types.String         `tfsdk:"color"`
 	IdentityKeys   [][]string           `tfsdk:"identity_keys"`
 	Deprecated     types.Bool           `tfsdk:"deprecated"`
+	Grouping       []string             `tfsdk:"grouping_relationship_types"`
 	StorageVersion types.String         `tfsdk:"storage_version"`
 	Schema         jsontypes.Normalized `tfsdk:"schema"`
 	Versions       []kindVersionDSModel `tfsdk:"versions"`
@@ -177,7 +178,9 @@ func (d *kindDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, r
 			"description": dsString("Description."), "icon": dsString("Icon (`pack:name`)."), "color": dsString("Color (`#rrggbb`)."),
 			"identity_keys": schema.ListAttribute{MarkdownDescription: "Identity keys (lists of JSON pointers).", Computed: true,
 				ElementType: types.ListType{ElemType: types.StringType}},
-			"deprecated":      dsBool("Whether the kind is deprecated."),
+			"deprecated": dsBool("Whether the kind is deprecated."),
+			"grouping_relationship_types": schema.SetAttribute{MarkdownDescription: "Map grouping: relationship types followed to an " +
+				"entity of this kind (empty when the kind is not a map grouping).", ElementType: types.StringType, Computed: true},
 			"storage_version": dsString("Current storage version, e.g. `v2`."),
 			"schema":          dsJSON("JSON Schema of the storage version."),
 			"versions": schema.ListNestedAttribute{
@@ -215,11 +218,15 @@ func (d *kindDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		Builtin: types.BoolValue(k.Builtin), Title: types.StringValue(k.Title), Plural: types.StringValue(k.Plural),
 		Description: types.StringValue(k.Description), Icon: types.StringValue(k.Icon), Color: types.StringValue(k.Color),
 		IdentityKeys: [][]string{}, Deprecated: types.BoolValue(k.Deprecated), StorageVersion: types.StringValue(k.StorageVersion),
-		Schema: rawOrEmpty(k.StorageSchema()), Versions: []kindVersionDSModel{},
+		Grouping: []string{},
+		Schema:   rawOrEmpty(k.StorageSchema()), Versions: []kindVersionDSModel{},
 		Support: &kindSupportDSModel{Modeling: types.BoolValue(k.Support.Modeling), Terraform: nonNilStrings(k.Support.Terraform),
 			Runtime: nonNilStrings(k.Support.Runtime), Native: nonNilStrings(k.Support.Native)}}
 	for _, key := range k.IdentityKeys {
 		m.IdentityKeys = append(m.IdentityKeys, nonNilStrings(key))
+	}
+	if k.Grouping != nil {
+		m.Grouping = nonNilStrings(k.Grouping.RelationshipTypes)
 	}
 	for _, v := range k.Versions {
 		m.Versions = append(m.Versions, kindVersionDSModel{Version: types.StringValue(v.Version), Breaking: types.BoolValue(v.Breaking),

@@ -174,6 +174,7 @@ type Kind struct {
 	StorageVersion  string        `json:"storage_version"`
 	Versions        []KindVersion `json:"versions"`
 	Deprecated      bool          `json:"deprecated"`
+	Grouping        *KindGrouping `json:"grouping,omitempty"`
 	ResourceVersion int64         `json:"resource_version"`
 	Support         KindSupport   `json:"support"`
 	ETag            string        `json:"-"`
@@ -192,6 +193,12 @@ func (k *Kind) StorageSchema() json.RawMessage {
 func kindETag(k *Kind, e string) { k.ETag = e }
 
 // KindInput creates a custom kind or replaces its display fields and identity keys (PATCH).
+// KindGrouping makes a kind a map grouping (Deed 0.3.0+): entities are grouped under the nearest entity of the kind they
+// reach through these relationship types.
+type KindGrouping struct {
+	RelationshipTypes []string `json:"relationship_types"`
+}
+
 type KindInput struct {
 	Name         string     `json:"name,omitempty"`
 	Group        string     `json:"group,omitempty"`
@@ -202,6 +209,8 @@ type KindInput struct {
 	Color        string     `json:"color,omitempty"`
 	IdentityKeys [][]string `json:"identity_keys,omitempty"`
 	Deprecated   bool       `json:"deprecated,omitempty"`
+	// Grouping nil keeps the current map grouping; an empty list removes it.
+	Grouping *KindGrouping `json:"grouping,omitempty"`
 }
 
 type kindCreate struct {

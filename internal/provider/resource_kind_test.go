@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -186,6 +188,53 @@ func TestAccKind_validation(t *testing.T) {
 }`,
 				ExpectError: errRE("Invalid identity key"),
 				PlanOnly:    true,
+			},
+		},
+	})
+}
+
+func TestAccKind_grouping(t *testing.T) {
+	testAccPreCheck(t)
+	name := "acc.example.com/" + strings.ReplaceAll(randName("row"), "-", "_")
+	cfg := func(extra string) string {
+		return fmt.Sprintf(`
+resource "deed_kind" "row" {
+  name  = %q
+  title = "Rack row"
+%s
+}
+
+data "deed_kind" "row" {
+  name = deed_kind.row.name
+}
+`, name, extra)
+	}
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: cfg(`  grouping_relationship_types = ["located_in", "member_of"]`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("deed_kind.row", "grouping_relationship_types.#", "2"),
+					resource.TestCheckTypeSetElemAttr("deed_kind.row", "grouping_relationship_types.*", "located_in"),
+					resource.TestCheckResourceAttr("data.deed_kind.row", "grouping_relationship_types.#", "2"),
+				),
+			},
+			{Config: cfg(`  grouping_relationship_types = ["member_of", "located_in"]`), ConfigPlanChecks: expectEmptyPlan()},
+			// Omitting the argument keeps the grouping (it may be managed in the UI).
+			{
+				Config: cfg(""),
+				Check:  resource.TestCheckResourceAttr("deed_kind.row", "grouping_relationship_types.#", "2"),
+			},
+			{Config: cfg(""), ConfigPlanChecks: expectEmptyPlan()},
+			// An empty set removes it.
+			{
+				Config: cfg(`  grouping_relationship_types = []`),
+				Check:  resource.TestCheckResourceAttr("deed_kind.row", "grouping_relationship_types.#", "0"),
+			},
+			{
+				Config:      cfg(`  grouping_relationship_types = ["no_such_type"]`),
+				ExpectError: regexp.MustCompile(`unknown relationship type`),
 			},
 		},
 	})

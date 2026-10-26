@@ -6,6 +6,11 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- `deed_kind.grouping_relationship_types` (and on the `deed_kind` data source): makes a custom kind a map grouping
+  (Deed 0.3.0 or newer). Omitting it leaves the grouping as set in Deed; an empty set removes it.
+
 ## [0.2.0] - 2026-10-26
 
 Works with Deed 0.1.0 or newer; the service account resources need Deed 0.2.0. Tested against Deed v0.2.0.

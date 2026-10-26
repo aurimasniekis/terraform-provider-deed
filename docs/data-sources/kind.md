@@ -36,6 +36,7 @@ output "server_schema" {
 - `deprecated` (Boolean) Whether the kind is deprecated.
 - `description` (String) Description.
 - `group` (String) Catalog group.
+- `grouping_relationship_types` (Set of String) Map grouping: relationship types followed to an entity of this kind (empty when the kind is not a map grouping).
 - `icon` (String) Icon (`pack:name`).
 - `id` (String) The kind name.
 - `identity_keys` (List of List of String) Identity keys (lists of JSON pointers).
