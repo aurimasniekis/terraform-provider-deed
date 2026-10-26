@@ -167,7 +167,7 @@ Grafana dashboard link on the service), the owning team, and the relationships b
 
 | Provider | Deed | API | Terraform |
 |---|---|---|---|
-| 0.3.x | ≥ 0.1.0; service accounts need ≥ 0.2.0, `deed_kind.grouping_relationship_types` ≥ [0.3.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.3.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
+| 0.3.1+ | ≥ 0.1.0; service accounts need ≥ 0.2.0, `deed_kind.grouping_relationship_types` ≥ [0.3.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.3.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 | 0.2.x | ≥ 0.1.0; `deed_service_account` and `deed_service_account_token` need ≥ [0.2.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.2.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 | 0.1.x | ≥ [0.1.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.1.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 

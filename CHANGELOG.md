@@ -6,14 +6,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-10-26
+## [0.3.1] - 2026-10-26
 
 Works with Deed 0.1.0 or newer; `grouping_relationship_types` needs Deed 0.3.0. Tested against Deed v0.3.0.
+
+### Fixed
+
+- The 0.3.0 release was built from the 0.2.0 commit (the tag was created on the wrong commit), so it did not contain the
+  changes below. 0.3.1 is the intended release; use it instead of 0.3.0.
 
 ### Added
 
 - `deed_kind.grouping_relationship_types` (and on the `deed_kind` data source): makes a custom kind a map grouping
   (Deed 0.3.0 or newer). Omitting it leaves the grouping as set in Deed; an empty set removes it.
+
+## [0.3.0] - 2026-10-26
+
+Released from the wrong commit: identical to 0.2.0. Use 0.3.1.
 
 ## [0.2.0] - 2026-10-26
 
@@ -52,7 +61,8 @@ First release. Requires Deed 0.1.0 or newer (API `v1`) and Terraform 1.11 or new
 - `examples/` for every resource and data source, the `examples/homelab` scenario and generated `docs/`.
 - Release configuration for the Terraform Registry (GoReleaser, signed SHA256SUMS, registry manifest).
 
-[Unreleased]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.2.0...v0.3.1
 [0.3.0]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/aurimasniekis/terraform-provider-deed/releases/tag/v0.1.0
