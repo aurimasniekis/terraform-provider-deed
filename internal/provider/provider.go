@@ -245,6 +245,9 @@ func (p *deedProvider) Resources(context.Context) []func() resource.Resource {
 		NewRelationshipTypeResource,
 		NewEntityResource,
 		NewRelationshipResource,
+		NewSourceResource,
+		NewServiceAccountResource,
+		NewServiceAccountTokenResource,
 	}
 }
 
@@ -256,6 +259,7 @@ func (p *deedProvider) DataSources(context.Context) []func() datasource.DataSour
 		NewEntityDataSource,
 		NewEntitiesDataSource,
 		NewRelationshipDataSource,
+		NewSourceDataSource,
 	}
 }
 

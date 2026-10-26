@@ -75,8 +75,12 @@ Unknown (computed) provider arguments are rejected; missing ones are reported pe
 provider reads `GET /api/v1/system/info` and **warns** (it does not fail) when the server reports an API version other
 than `v1` or a release older than the supported minimum.
 
-**Tokens.** API tokens are created by a signed-in user (the account page of the Deed web UI, or
-`POST /api/v1/me/tokens` from an interactive session with a recent sign-in) and act with at most that user's roles:
+**Tokens.** Prefer a **service account** token for automation: a non-human Deed user that cannot sign in and is bounded
+by its own installation role and project memberships. Get the first one on the Deed host with
+`deed admin token -service-account terraform -create -role admin -days 366` (server stopped; prints only the token), or
+in the UI under *Settings → Users → Service accounts*; after that Terraform can manage service accounts and rotate tokens
+itself (`deed_service_account`, `deed_service_account_token`; Deed 0.2.0 or newer). Personal API tokens (the account
+page, or `POST /api/v1/me/tokens` with a recent sign-in) work too and act with at most that user's roles. Either way:
 
 - projects, kinds and relationship types need a token with the installation `admin` role (owners can issue one);
 - entities, relationships and project members need the project `editor` (members: `admin`) role.
@@ -95,10 +99,14 @@ than `v1` or a release older than the supported minimum.
 | `deed_relationship_type` | type name |
 | `deed_entity` | entity ID, or `<project>/<kind>/<name>` (the kind may contain a slash) |
 | `deed_relationship` | relationship ID (`rel_…`) |
+| `deed_source` | `<project>/<name>` or source ID (`src_…`) |
+| `deed_service_account` | name or user ID (`usr_…`) |
+| `deed_service_account_token` | not importable (the secret cannot be read back) |
 
 Data sources: `deed_project`, `deed_kind`, `deed_relationship_type`, `deed_entity` (the **effective** view, by ID or
 by project/kind/name, including computed status as JSON), `deed_entities` (search by project, kind, labels and full
-text) and `deed_relationship` (by ID or by type and endpoints).
+text), `deed_relationship` (by ID or by type and endpoints) and `deed_source` (configuration and sync status: freshness,
+last run, last error).
 
 Every resource and data source has an example under [`examples/`](examples); the generated reference is in
 [`docs/`](docs). [`examples/homelab`](examples/homelab/main.tf) is a complete scenario: a custom `UPS` kind and
@@ -143,6 +151,15 @@ Grafana dashboard link on the service), the owning team, and the relationships b
   responses are capped at 8 MiB, and request/response bodies are never logged.
 - **Diagnostics.** Problem documents (RFC 9457) are turned into diagnostics; per-field validation errors point at the
   offending attribute (for example `labels["Team"]` or `links[1].url`).
+- **Sources and credentials.** `deed_source` manages connectors (`github`, `hallpass`, `porch`, `terraform_state`,
+  `pulse_admin`, `pulse_tail`, …) and push sources. `config` and `policy` are JSON strings validated by Deed against the
+  provider's schema. Credentials go in `secrets_wo`, a write-only argument (Terraform 1.11+) that is sent to Deed but
+  never stored in the plan or state (Deed never returns it either); change `secrets_wo_version` to send new values.
+  Sync status is volatile, so it is only on the `deed_source` data source. Destroying a source deletes every fact it
+  contributed.
+- **Service account tokens are in state.** `deed_service_account_token.token` is a sensitive computed value and therefore
+  stored in the state; keep the state encrypted, or create tokens outside Terraform. Tokens revoked or expired outside
+  Terraform are recreated; `rotate_before_days` and `keepers` replace them on schedule (use `create_before_destroy`).
 - **Tombstones and definitions.** Deleting a kind or relationship type is blocked only by live users; tombstoned
   entities and retracted relationships are compacted with it.
 
@@ -150,6 +167,7 @@ Grafana dashboard link on the service), the owning team, and the relationships b
 
 | Provider | Deed | API | Terraform |
 |---|---|---|---|
+| 0.2.x | ≥ 0.1.0; `deed_service_account` and `deed_service_account_token` need ≥ 0.2.0 | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 | 0.1.x | ≥ [0.1.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.1.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 
 The provider and Deed are versioned and released independently. The provider only talks to `/api/v1`, which changes

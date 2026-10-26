@@ -67,7 +67,8 @@ func TestSchemasAreValid(t *testing.T) {
 		if d := sr.Schema.ValidateImplementation(ctx); d.HasError() {
 			t.Fatalf("%s: %v", md.TypeName, d)
 		}
-		if _, ok := r.(fwresource.ResourceWithImportState); !ok {
+		// A token's secret cannot be read back, so importing one could only produce a token without its value.
+		if _, ok := r.(fwresource.ResourceWithImportState); !ok && md.TypeName != "deed_service_account_token" {
 			t.Errorf("%s does not support import", md.TypeName)
 		}
 		if _, ok := r.(fwresource.ResourceWithUpgradeState); !ok {
@@ -83,7 +84,8 @@ func TestSchemasAreValid(t *testing.T) {
 			t.Errorf("%s has no description", md.TypeName)
 		}
 	}
-	want := []string{"deed_project", "deed_project_member", "deed_kind", "deed_relationship_type", "deed_entity", "deed_relationship"}
+	want := []string{"deed_project", "deed_project_member", "deed_kind", "deed_relationship_type", "deed_entity", "deed_relationship",
+		"deed_source", "deed_service_account", "deed_service_account_token"}
 	for _, w := range want {
 		if !seen[w] {
 			t.Errorf("missing resource %s", w)
@@ -104,9 +106,23 @@ func TestSchemasAreValid(t *testing.T) {
 			t.Fatalf("%s: %v", md.TypeName, diags)
 		}
 	}
-	for _, w := range []string{"deed_project", "deed_kind", "deed_relationship_type", "deed_entity", "deed_entities", "deed_relationship"} {
+	for _, w := range []string{"deed_project", "deed_kind", "deed_relationship_type", "deed_entity", "deed_entities", "deed_relationship", "deed_source"} {
 		if !dss[w] {
 			t.Errorf("missing data source %s", w)
+		}
+	}
+}
+
+func TestSourceSecretsAreWriteOnly(t *testing.T) {
+	var sr fwresource.SchemaResponse
+	NewSourceResource().Schema(context.Background(), fwresource.SchemaRequest{}, &sr)
+	a := sr.Schema.Attributes["secrets_wo"]
+	if a == nil || !a.IsWriteOnly() || !a.IsSensitive() || a.IsComputed() {
+		t.Fatalf("secrets_wo must be write-only, sensitive and not computed: %+v", a)
+	}
+	for _, v := range []string{"freshness", "last_run_at", "last_error", "running"} {
+		if _, ok := sr.Schema.Attributes[v]; ok {
+			t.Errorf("deed_source exposes volatile attribute %q (it belongs in the data source)", v)
 		}
 	}
 }

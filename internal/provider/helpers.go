@@ -323,3 +323,5 @@ func rootMapper(attrs map[string]string) fieldMapper {
 		return path.Empty(), false
 	}
 }
+
+var serviceAccountNameRE = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,62}$`)

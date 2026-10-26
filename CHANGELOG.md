@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- `deed_source` resource: connectors (`github`, `hallpass`, `porch`, `terraform_state`, `pulse_admin`, `pulse_tail`, …)
+  and push sources with `config` and `policy` as JSON, schedule and enabled flag. Credentials go in the write-only
+  `secrets_wo` (never stored in plan or state; Terraform 1.11+), resent when `secrets_wo_version` changes. Import by
+  `<project>/<name>` or ID.
+- `deed_source` data source with sync status (freshness, running, last run and success, last error, next run).
+- `deed_service_account` and `deed_service_account_token` resources (Deed 0.2.0 or newer): automation identities
+  bounded by their installation role and project memberships (`deed_project_member` accepts their ID), and tokens that
+  are recreated when revoked or expired, with `rotate_before_days` and `keepers` for scheduled rotation.
+
 ## [0.1.0] - 2026-10-26
 
 First release. Requires Deed 0.1.0 or newer (API `v1`) and Terraform 1.11 or newer.
