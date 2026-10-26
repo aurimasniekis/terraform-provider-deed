@@ -80,5 +80,11 @@ If a release is broken, do not delete or re-tag it (the Registry caches versions
 temporary keyring (deleted afterwards) produced the nine platform zips, `SHA256SUMS` listing them and the
 `_manifest.json` (protocol `6.0`), and `SHA256SUMS.sig`, which `gpg --verify` accepted. Terraform 1.11.4 installed the
 darwin/arm64 zip from a filesystem mirror (`provider_installation { filesystem_mirror { … } }`) and
-`terraform providers schema -json` listed all six resources and six data sources. Nothing was published; the release
-key, repository secrets and Registry namespace still have to be set up as described above.
+`terraform providers schema -json` listed all six resources and six data sources.
+
+## Release record
+- **v0.1.0** (2026-10-26, `cb75a39`, tested against Deed v0.1.0): release run 40317045940 built the nine platform
+  zips, the manifest and `SHA256SUMS`, signed with key `62BC817EB965CAFF` (RSA), which is the key registered for the
+  `aurimasniekis` Registry namespace. The Registry listed 0.1.0 within minutes of publishing the draft, and
+  `terraform init` with `version = "0.1.0"` installed it ("self-signed, key ID 62BC817EB965CAFF") and loaded six
+  resources and six data sources.
