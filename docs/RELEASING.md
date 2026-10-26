@@ -83,6 +83,9 @@ darwin/arm64 zip from a filesystem mirror (`provider_installation { filesystem_m
 `terraform providers schema -json` listed all six resources and six data sources.
 
 ## Release record
+- **v0.2.0** (2026-10-26, `6d14bae`, tested against Deed v0.2.0): release run succeeded, checksums signed with
+  `62BC817EB965CAFF`; the Registry listed 0.2.0 within minutes and `terraform init` installed it with nine resources
+  and seven data sources (`deed_source.secrets_wo` write-only and sensitive).
 - **v0.1.0** (2026-10-26, `cb75a39`, tested against Deed v0.1.0): release run 40317045940 built the nine platform
   zips, the manifest and `SHA256SUMS`, signed with key `62BC817EB965CAFF` (RSA), which is the key registered for the
   `aurimasniekis` Registry namespace. The Registry listed 0.1.0 within minutes of publishing the draft, and
