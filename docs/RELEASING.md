@@ -57,7 +57,8 @@ Nothing has been published yet. The first release needs the one-time owner setup
 5. Commit, then tag and push (a signed annotated tag is recommended):
 
    ```sh
-   git tag -s v0.1.0 -m "v0.1.0"
+   git fetch origin && git tag -s v0.1.0 -m "v0.1.0" "$(git rev-parse origin/main)"
+   git rev-parse 'v0.1.0^{commit}'   # must be the release commit
    git push origin v0.1.0
    ```
 
@@ -83,6 +84,12 @@ darwin/arm64 zip from a filesystem mirror (`provider_installation { filesystem_m
 `terraform providers schema -json` listed all six resources and six data sources.
 
 ## Release record
+- **v0.3.1** (2026-10-26, `1904e3f`, tested against Deed v0.3.0): the intended 0.3.0. Signed with `62BC817EB965CAFF`;
+  the Registry lists it and `terraform init` installs it with `deed_kind.grouping_relationship_types`.
+- **v0.3.0** (2026-10-26): **broken**. The tag was created on a detached HEAD at the 0.2.0 commit, so the release is
+  identical to 0.2.0. Its GitHub release is marked "do not use"; it stays in the Registry (versions are cached). Lesson:
+  tag an explicit commit (`git tag -s vX.Y.Z -m vX.Y.Z <sha of origin/main>`) and check `git rev-parse vX.Y.Z^{commit}`
+  before pushing the tag.
 - **v0.2.0** (2026-10-26, `6d14bae`, tested against Deed v0.2.0): release run succeeded, checksums signed with
   `62BC817EB965CAFF`; the Registry listed 0.2.0 within minutes and `terraform init` installed it with nine resources
   and seven data sources (`deed_source.secrets_wo` write-only and sensitive).
