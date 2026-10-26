@@ -6,7 +6,9 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
-First release, planned as 0.1.0. Requires Deed at or after commit `6422bee` (API `v1`) and Terraform 1.11 or newer.
+## [0.1.0] - 2026-10-26
+
+First release. Requires Deed 0.1.0 or newer (API `v1`) and Terraform 1.11 or newer.
 
 ### Added
 
@@ -26,4 +28,5 @@ First release, planned as 0.1.0. Requires Deed at or after commit `6422bee` (API
 - `examples/` for every resource and data source, the `examples/homelab` scenario and generated `docs/`.
 - Release configuration for the Terraform Registry (GoReleaser, signed SHA256SUMS, registry manifest).
 
-[Unreleased]: https://github.com/aurimasniekis/terraform-provider-deed/commits/main
+[Unreleased]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/aurimasniekis/terraform-provider-deed/releases/tag/v0.1.0

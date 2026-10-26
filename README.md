@@ -5,8 +5,8 @@ relationship map — as code: projects and their members, custom kinds (with ver
 types, and above all the **entities** of your infrastructure and the **relationships** between them.
 
 Built with [terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework) (protocol 6) and
-tested against Deed commit [`569e2db`](https://github.com/aurimasniekis/go-deed/commit/569e2db3228c989770a4d3381a82c5ca3f7d3017)
-with Terraform 1.11 (it works with every Deed since [`6422bee`](https://github.com/aurimasniekis/go-deed/commit/6422bee0de0cff83546894e5f713eaf9c493dff8)).
+tested against [Deed v0.1.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.1.0) with Terraform 1.11; it works
+with every Deed release from 0.1.0 on.
 
 ## Repository name and source address
 
@@ -150,7 +150,7 @@ Grafana dashboard link on the service), the owning team, and the relationships b
 
 | Provider | Deed | API | Terraform |
 |---|---|---|---|
-| 0.1.x (unreleased) | ≥ [`40311d6`](https://github.com/aurimasniekis/go-deed/commit/40311d64183ceebe9963a457342a6392e99d0f64) (first release ≥ 0.1.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
+| 0.1.x | ≥ [0.1.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.1.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 
 The provider and Deed are versioned and released independently. The provider only talks to `/api/v1`, which changes
 additively, so a provider release works with every Deed release at or above its minimum; see go-deed's

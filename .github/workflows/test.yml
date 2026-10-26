@@ -11,7 +11,7 @@ permissions:
 env:
   # Deed revision the acceptance tests and the scenario run against (keep in sync with DEED_COMMIT in the Makefile).
   DEED_REPOSITORY: aurimasniekis/go-deed
-  DEED_COMMIT: 569e2db3228c989770a4d3381a82c5ca3f7d3017
+  DEED_COMMIT: 3f45d31a7ba252d7578ca1e3c5167a5bc2a73f27 # v0.1.0
   TERRAFORM_VERSION: 1.11.4
 
 jobs:
