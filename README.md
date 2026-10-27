@@ -5,9 +5,9 @@ relationship map — as code: projects and their members, custom kinds (with ver
 types, and above all the **entities** of your infrastructure and the **relationships** between them.
 
 Built with [terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework) (protocol 6) and
-tested against [Deed v0.4.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.4.0) with Terraform 1.11; it works
+tested against [Deed v0.7.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.7.0) with Terraform 1.11; it works
 with every Deed release from 0.1.0 on (service accounts need 0.2.0, kind map grouping 0.3.0, the telemetry binding
-arguments `guard`, `when_empty` and `on_map` 0.4.0).
+arguments `guard`, `when_empty` and `on_map` 0.4.0, `deed_label_rule` and `deed_entity_override` 0.7.0).
 
 ## Repository name and source address
 
@@ -105,6 +105,8 @@ page, or `POST /api/v1/me/tokens` with a recent sign-in) work too and act with a
 | `deed_service_account_token` | not importable (the secret cannot be read back) |
 | `deed_integration` | name or ID |
 | `deed_telemetry_binding` | name or ID |
+| `deed_label_rule` | `<project>/<name>` or rule ID |
+| `deed_entity_override` | entity ID, or `<project>/<kind>/<name>` |
 
 Data sources: `deed_project`, `deed_kind`, `deed_relationship_type`, `deed_entity` (the **effective** view, by ID or
 by project/kind/name, including computed status as JSON), `deed_entities` (search by project, kind, labels and full

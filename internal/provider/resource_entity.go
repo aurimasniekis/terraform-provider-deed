@@ -85,7 +85,8 @@ func (r *entityResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 			"annotations — into an effective view. This resource manages only the provider's own declaration: its state is read from " +
 			"`GET /entities/{id}/declarations/{source}` and never from the merged view, so values contributed by other sources (and " +
 			"observed health or freshness) never cause a diff. Destroying the resource removes only this declaration; the entity " +
-			"survives while other sources still contribute to it. Read the effective view with the `deed_entity` data source.\n\n" +
+			"survives while other sources still describe it (annotations, overrides and label rules alone do not keep it, from Deed " +
+			"0.7.0). Read the effective view with the `deed_entity` data source.\n\n" +
 			"If the entity already exists because another source reported it, creating the resource adopts it (the declaration is " +
 			"added). If the provider's source already declares it — for example from another Terraform configuration — the apply " +
 			"fails and asks you to `terraform import` it instead.\n\n" +

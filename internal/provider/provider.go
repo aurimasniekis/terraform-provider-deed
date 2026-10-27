@@ -250,6 +250,8 @@ func (p *deedProvider) Resources(context.Context) []func() resource.Resource {
 		NewServiceAccountTokenResource,
 		NewIntegrationResource,
 		NewTelemetryBindingResource,
+		NewLabelRuleResource,
+		NewEntityOverrideResource,
 	}
 }
 

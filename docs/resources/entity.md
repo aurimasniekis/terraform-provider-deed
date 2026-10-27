@@ -4,7 +4,7 @@ page_title: "deed_entity Resource - deed"
 subcategory: ""
 description: |-
   An entity in the Deed catalog, declared through the provider's source (terraform by default, see the provider's source_name argument).
-  Deed merges the facets of every source that knows an entity — declarations, importers, runtime observations and UI annotations — into an effective view. This resource manages only the provider's own declaration: its state is read from GET /entities/{id}/declarations/{source} and never from the merged view, so values contributed by other sources (and observed health or freshness) never cause a diff. Destroying the resource removes only this declaration; the entity survives while other sources still contribute to it. Read the effective view with the deed_entity data source.
+  Deed merges the facets of every source that knows an entity — declarations, importers, runtime observations and UI annotations — into an effective view. This resource manages only the provider's own declaration: its state is read from GET /entities/{id}/declarations/{source} and never from the merged view, so values contributed by other sources (and observed health or freshness) never cause a diff. Destroying the resource removes only this declaration; the entity survives while other sources still describe it (annotations, overrides and label rules alone do not keep it, from Deed 0.7.0). Read the effective view with the deed_entity data source.
   If the entity already exists because another source reported it, creating the resource adopts it (the declaration is added). If the provider's source already declares it — for example from another Terraform configuration — the apply fails and asks you to terraform import it instead.
   Entities cannot be renamed through Terraform: changing name, kind or project replaces the declaration.
 ---
@@ -13,7 +13,7 @@ description: |-
 
 An entity in the Deed catalog, **declared through the provider's source** (`terraform` by default, see the provider's `source_name` argument).
 
-Deed merges the facets of every source that knows an entity — declarations, importers, runtime observations and UI annotations — into an effective view. This resource manages only the provider's own declaration: its state is read from `GET /entities/{id}/declarations/{source}` and never from the merged view, so values contributed by other sources (and observed health or freshness) never cause a diff. Destroying the resource removes only this declaration; the entity survives while other sources still contribute to it. Read the effective view with the `deed_entity` data source.
+Deed merges the facets of every source that knows an entity — declarations, importers, runtime observations and UI annotations — into an effective view. This resource manages only the provider's own declaration: its state is read from `GET /entities/{id}/declarations/{source}` and never from the merged view, so values contributed by other sources (and observed health or freshness) never cause a diff. Destroying the resource removes only this declaration; the entity survives while other sources still describe it (annotations, overrides and label rules alone do not keep it, from Deed 0.7.0). Read the effective view with the `deed_entity` data source.
 
 If the entity already exists because another source reported it, creating the resource adopts it (the declaration is added). If the provider's source already declares it — for example from another Terraform configuration — the apply fails and asks you to `terraform import` it instead.
 

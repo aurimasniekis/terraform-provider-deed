@@ -6,6 +6,20 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-27
+
+Works with Deed 0.1.0 or newer (service accounts need 0.2.0, kind map grouping 0.3.0, the binding arguments of 0.5.0
+need 0.4.0, the new resources 0.7.0). Tested against Deed v0.7.0.
+
+### Added
+
+- `deed_label_rule`: project label rules (Deed 0.7.0) — labels such as `group = "github"` added to the entities a
+  `match` (kinds, source names, existing labels; globs) selects, below every source and without declaring them.
+- `deed_entity_override`: an override of an entity other sources own (display name, icon, owner, labels, annotations,
+  links, tags, version and spec values), targeted by `entity_id` or `project`/`kind`/`name`, through the project's
+  `overrides` source (Deed 0.7.0). State reads only the override; it never keeps the entity alive, and when the entity
+  is gone it reads as removed so Terraform plans to create it again.
+
 ## [0.5.0] - 2026-10-27
 
 Works with Deed 0.1.0 or newer (service accounts need 0.2.0, kind map grouping 0.3.0, the new binding arguments 0.4.0).
@@ -85,7 +99,8 @@ First release. Requires Deed 0.1.0 or newer (API `v1`) and Terraform 1.11 or new
 - `examples/` for every resource and data source, the `examples/homelab` scenario and generated `docs/`.
 - Release configuration for the Terraform Registry (GoReleaser, signed SHA256SUMS, registry manifest).
 
-[Unreleased]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.2.0...v0.3.1

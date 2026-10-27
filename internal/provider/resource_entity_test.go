@@ -272,6 +272,12 @@ resource "deed_entity" "repo" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					capture("deed_entity.repo", "id", &id),
 					apiCheck(t, func(ctx context.Context, c *client.Client, _ *terraform.State) error {
+						// Another describing source (the project's api source) and a UI annotation. Annotations alone would not keep
+						// the entity alive (Deed 0.7.0); the api declaration does.
+						if _, err := c.PutDeclaration(ctx, id, "api", "", client.DeclarationInput{
+							Metadata: &client.Metadata{Owner: "platform"}}); err != nil {
+							return err
+						}
 						_, err := c.PutDeclaration(ctx, id, "ui", "", client.DeclarationInput{
 							Metadata: &client.Metadata{Annotations: map[string]string{"note": "kept by the UI"}}})
 						return err
@@ -300,7 +306,7 @@ resource "deed_entity" "repo" {
 						return fmt.Errorf("entity was deleted with the Terraform declaration: %w", err)
 					}
 					st := e.ParsedStatus()
-					if e.Metadata.Annotations["note"] != "kept by the UI" || st.TombstonedAt != "" || st.Facets != 1 {
+					if e.Metadata.Annotations["note"] != "kept by the UI" || e.Metadata.Owner != "platform" || st.TombstonedAt != "" || st.Facets != 2 {
 						return fmt.Errorf("independent data lost: annotations=%v status=%+v", e.Metadata.Annotations, st)
 					}
 					if len(e.Metadata.Links) != 0 || e.Metadata.DisplayName != "" {

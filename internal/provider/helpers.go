@@ -268,6 +268,7 @@ var (
 	envRE         = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
 	iconRE        = regexp.MustCompile(`^(tabler|simple-icons|thesvg|custom):[a-z0-9][a-z0-9._-]{0,127}$`)
 	colorRE       = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+	entityIDRE    = regexp.MustCompile(`^ent_[0-9a-z]{26}$`)
 	labelKeyRE    = regexp.MustCompile(`^([a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?/)?[a-zA-Z0-9]([a-zA-Z0-9._-]{0,61}[a-zA-Z0-9])?$`)
 )
 

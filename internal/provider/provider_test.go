@@ -85,7 +85,7 @@ func TestSchemasAreValid(t *testing.T) {
 		}
 	}
 	want := []string{"deed_project", "deed_project_member", "deed_kind", "deed_relationship_type", "deed_entity", "deed_relationship",
-		"deed_source", "deed_service_account", "deed_service_account_token", "deed_integration", "deed_telemetry_binding"}
+		"deed_source", "deed_service_account", "deed_service_account_token", "deed_integration", "deed_telemetry_binding", "deed_label_rule", "deed_entity_override"}
 	for _, w := range want {
 		if !seen[w] {
 			t.Errorf("missing resource %s", w)
