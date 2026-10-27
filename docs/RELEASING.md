@@ -84,6 +84,9 @@ darwin/arm64 zip from a filesystem mirror (`provider_installation { filesystem_m
 `terraform providers schema -json` listed all six resources and six data sources.
 
 ## Release record
+- **v0.4.0** (2026-10-27, `2564b1e`, tested against Deed v0.3.2; tag checked against the release commit): telemetry
+  resources (`deed_integration`, `deed_telemetry_binding`, `deed_integrations`). Signed with `62BC817EB965CAFF`; the
+  Registry lists it and `terraform init` installs it with the three new types.
 - **v0.3.1** (2026-10-26, `1904e3f`, tested against Deed v0.3.0): the intended 0.3.0. Signed with `62BC817EB965CAFF`;
   the Registry lists it and `terraform init` installs it with `deed_kind.grouping_relationship_types`.
 - **v0.3.0** (2026-10-26): **broken**. The tag was created on a detached HEAD at the 0.2.0 commit, so the release is
