@@ -85,7 +85,7 @@ func TestSchemasAreValid(t *testing.T) {
 		}
 	}
 	want := []string{"deed_project", "deed_project_member", "deed_kind", "deed_relationship_type", "deed_entity", "deed_relationship",
-		"deed_source", "deed_service_account", "deed_service_account_token"}
+		"deed_source", "deed_service_account", "deed_service_account_token", "deed_integration", "deed_telemetry_binding"}
 	for _, w := range want {
 		if !seen[w] {
 			t.Errorf("missing resource %s", w)
@@ -106,7 +106,7 @@ func TestSchemasAreValid(t *testing.T) {
 			t.Fatalf("%s: %v", md.TypeName, diags)
 		}
 	}
-	for _, w := range []string{"deed_project", "deed_kind", "deed_relationship_type", "deed_entity", "deed_entities", "deed_relationship", "deed_source"} {
+	for _, w := range []string{"deed_project", "deed_kind", "deed_relationship_type", "deed_entity", "deed_entities", "deed_relationship", "deed_source", "deed_integrations"} {
 		if !dss[w] {
 			t.Errorf("missing data source %s", w)
 		}

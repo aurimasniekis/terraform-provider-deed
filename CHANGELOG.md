@@ -6,6 +6,15 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- `deed_integration`: telemetry integrations (`prometheus`, `loki`, `grafana`, `natsmon`, `opensearch`) with JSON
+  `config` and write-only `secrets_wo` / `secrets_wo_version`, as for `deed_source`. Deleting one deletes its bindings.
+- `deed_telemetry_binding`: named query templates with typed parameters (JSON pointers into the entity), kinds, shape,
+  unit, role (`chart`, `health`, `edge_rate`, `link`), thresholds, freshness and the relationship type of edge-rate
+  bindings. Removing an argument returns it to Deed's default.
+- `deed_integrations` data source.
+
 ## [0.3.1] - 2026-10-26
 
 Works with Deed 0.1.0 or newer; `grouping_relationship_types` needs Deed 0.3.0. Tested against Deed v0.3.0.

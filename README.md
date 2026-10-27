@@ -102,11 +102,13 @@ page, or `POST /api/v1/me/tokens` with a recent sign-in) work too and act with a
 | `deed_source` | `<project>/<name>` or source ID (`src_…`) |
 | `deed_service_account` | name or user ID (`usr_…`) |
 | `deed_service_account_token` | not importable (the secret cannot be read back) |
+| `deed_integration` | name or ID |
+| `deed_telemetry_binding` | name or ID |
 
 Data sources: `deed_project`, `deed_kind`, `deed_relationship_type`, `deed_entity` (the **effective** view, by ID or
 by project/kind/name, including computed status as JSON), `deed_entities` (search by project, kind, labels and full
 text), `deed_relationship` (by ID or by type and endpoints) and `deed_source` (configuration and sync status: freshness,
-last run, last error).
+last run, last error) and `deed_integrations` (telemetry integrations, by adapter).
 
 Every resource and data source has an example under [`examples/`](examples); the generated reference is in
 [`docs/`](docs). [`examples/homelab`](examples/homelab/main.tf) is a complete scenario: a custom `UPS` kind and
