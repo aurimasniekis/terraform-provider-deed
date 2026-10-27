@@ -84,6 +84,10 @@ darwin/arm64 zip from a filesystem mirror (`provider_installation { filesystem_m
 `terraform providers schema -json` listed all six resources and six data sources.
 
 ## Release record
+- **v0.6.0** (2026-10-27, `da022d8`, tested against Deed v0.7.0; tag checked against the release commit):
+  `deed_label_rule` and `deed_entity_override`. Release run 40565546918; checksums verified and the signature checked
+  against the key the Registry serves (`62BC817EB965CAFF`); the Registry lists it and a clean `terraform init`
+  installs it with both new resources.
 - **v0.5.0** (2026-10-27, `b2f9155`, tested against Deed v0.4.0; tag checked against the release commit):
   `deed_telemetry_binding` `guard`, `when_empty` and `on_map`. Release run 40507807786; checksums verified and the
   signature checked against the key the Registry serves (`62BC817EB965CAFF`); the Registry lists it and a clean
