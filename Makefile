@@ -9,7 +9,7 @@ GORELEASER    ?= goreleaser
 
 # Deed source the acceptance tests run against (exported read-only from a local checkout of go-deed).
 DEED_REPO     ?= ../deed
-DEED_COMMIT   ?= v0.3.0
+DEED_COMMIT   ?= v0.3.2
 
 .DEFAULT_GOAL := help
 .PHONY: help build install test testacc lint fmt vet docs docs-check deed-src deed-bin scenario release-check release-snapshot clean

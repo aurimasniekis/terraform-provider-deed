@@ -5,7 +5,7 @@ relationship map — as code: projects and their members, custom kinds (with ver
 types, and above all the **entities** of your infrastructure and the **relationships** between them.
 
 Built with [terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework) (protocol 6) and
-tested against [Deed v0.3.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.3.0) with Terraform 1.11; it works
+tested against [Deed v0.3.2](https://github.com/aurimasniekis/go-deed/releases/tag/v0.3.2) with Terraform 1.11; it works
 with every Deed release from 0.1.0 on (service accounts need 0.2.0, kind map grouping 0.3.0).
 
 ## Repository name and source address
@@ -169,7 +169,8 @@ Grafana dashboard link on the service), the owning team, and the relationships b
 
 | Provider | Deed | API | Terraform |
 |---|---|---|---|
-| 0.3.1+ | ≥ 0.1.0; service accounts need ≥ 0.2.0, `deed_kind.grouping_relationship_types` ≥ [0.3.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.3.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
+| 0.4.x | ≥ 0.1.0; service accounts need ≥ 0.2.0, `deed_kind.grouping_relationship_types` ≥ 0.3.0 | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
+| 0.3.1 | ≥ 0.1.0; service accounts need ≥ 0.2.0, `deed_kind.grouping_relationship_types` ≥ [0.3.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.3.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 | 0.2.x | ≥ 0.1.0; `deed_service_account` and `deed_service_account_token` need ≥ [0.2.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.2.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 | 0.1.x | ≥ [0.1.0](https://github.com/aurimasniekis/go-deed/releases/tag/v0.1.0) | `/api/v1` | ≥ 1.11 (tested 1.11.4) |
 
