@@ -124,6 +124,9 @@ type Binding struct {
 	FreshnessSeconds int64             `json:"freshness_seconds"`
 	Role             string            `json:"role"`
 	RelationshipType string            `json:"relationship_type,omitempty"`
+	Guard            string            `json:"guard,omitempty"`
+	WhenEmpty        *float64          `json:"when_empty,omitempty"`
+	OnMap            bool              `json:"on_map"`
 	ResourceVersion  int64             `json:"resource_version"`
 	ETag             string            `json:"-"`
 }
@@ -143,6 +146,16 @@ type BindingInput struct {
 	FreshnessSeconds int64              `json:"freshness_seconds,omitempty"`
 	Role             string             `json:"role,omitempty"`
 	RelationshipType *string            `json:"relationship_type,omitempty"`
+	// Deed 0.4.0+: "" removes the guard, an empty WhenEmpty removes the value. Left nil (not sent) when unused, so
+	// configurations without them keep working against older Deed versions.
+	Guard     *string    `json:"guard,omitempty"`
+	WhenEmpty *WhenEmpty `json:"when_empty,omitempty"`
+	OnMap     *bool      `json:"on_map,omitempty"`
+}
+
+// WhenEmpty sets (Value) or removes (no Value) a binding's value for an empty result.
+type WhenEmpty struct {
+	Value *float64 `json:"value,omitempty"`
 }
 
 func bindingETag(b *Binding, e string) { b.ETag = e }

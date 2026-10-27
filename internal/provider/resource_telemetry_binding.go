@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -58,6 +59,9 @@ type bindingModel struct {
 	Thresholds       *bindingThresholdsModel `tfsdk:"thresholds"`
 	FreshnessSeconds types.Int64             `tfsdk:"freshness_seconds"`
 	RelationshipType types.String            `tfsdk:"relationship_type"`
+	Guard            types.String            `tfsdk:"guard"`
+	WhenEmpty        types.Float64           `tfsdk:"when_empty"`
+	OnMap            types.Bool              `tfsdk:"on_map"`
 }
 
 func (r *bindingResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -149,13 +153,31 @@ func (r *bindingResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: "Relationship type an `edge_rate` binding measures.", Optional: true,
 				Validators: []validator.String{stringvalidator.LengthBetween(1, 64)},
 			},
+			"guard": schema.StringAttribute{
+				MarkdownDescription: "Applicability query with the same placeholders: the binding applies to an entity only when it " +
+					"returns data, otherwise the result is \"not applicable\" (no value, no health). For example " +
+					"`up{job=\"node\",instance=\"{{instance}}\"}` for \"this host has node_exporter\". Requires Deed 0.4.0 or later.",
+				Optional:   true,
+				Validators: []validator.String{stringvalidator.LengthBetween(1, 8192)},
+			},
+			"when_empty": schema.Float64Attribute{
+				MarkdownDescription: "Value of an empty result (after the guard passed) for `scalar` bindings, e.g. `0` for an error " +
+					"rate whose counter has no series yet; replaces `or vector(0)`. Requires Deed 0.4.0 or later.",
+				Optional: true,
+			},
+			"on_map": schema.BoolAttribute{
+				MarkdownDescription: "Show the value under the entity's node card on the map (`scalar` bindings with role `chart` or " +
+					"`health`; Deed draws up to six per entity). Default `false`. Requires Deed 0.4.0 or later.",
+				Optional: true, Computed: true, Default: booldefault.StaticBool(false),
+			},
 		},
 	}
 }
 
 var bindingFields = rootMapper(map[string]string{"name": "name", "title": "title", "integration": "integration", "kinds": "kinds",
 	"query": "query", "params": "params", "shape": "shape", "unit": "unit", "role": "role", "thresholds": "thresholds",
-	"freshness_seconds": "freshness_seconds", "relationship_type": "relationship_type"})
+	"freshness_seconds": "freshness_seconds", "relationship_type": "relationship_type", "guard": "guard",
+	"when_empty": "when_empty", "on_map": "on_map"})
 
 func optStr(s string, prior types.String) types.String { return strVal(s, prior) }
 
@@ -217,10 +239,17 @@ func (m *bindingModel) fill(b *client.Binding) {
 	}
 	m.FreshnessSeconds = types.Int64Value(b.FreshnessSeconds)
 	m.RelationshipType = optStr(b.RelationshipType, m.RelationshipType)
+	m.Guard = optStr(b.Guard, m.Guard)
+	m.WhenEmpty = types.Float64Null()
+	if b.WhenEmpty != nil {
+		m.WhenEmpty = types.Float64Value(*b.WhenEmpty)
+	}
+	m.OnMap = types.BoolValue(b.OnMap)
 }
 
-// input is the full desired state: empty slices and "" clear on update (the API keeps omitted fields).
-func (m *bindingModel) input(ctx context.Context) client.BindingInput {
+// input is the full desired state: empty slices and "" clear on update (the API keeps omitted fields). The Deed 0.4.0
+// fields (guard, when_empty, on_map) are sent only when set, or to clear what prior (the state on update) has set.
+func (m *bindingModel) input(ctx context.Context, prior *bindingModel) client.BindingInput {
 	unit, rel := m.Unit.ValueString(), m.RelationshipType.ValueString()
 	in := client.BindingInput{Name: m.Name.ValueString(), Title: m.Title.ValueString(), Integration: m.Integration.ValueString(),
 		Kinds: []string{}, Query: m.Query.ValueString(), Params: []client.BindingParam{}, Unit: &unit, RelationshipType: &rel,
@@ -259,6 +288,21 @@ func (m *bindingModel) input(ctx context.Context) client.BindingInput {
 	if !m.FreshnessSeconds.IsNull() && !m.FreshnessSeconds.IsUnknown() {
 		in.FreshnessSeconds = m.FreshnessSeconds.ValueInt64()
 	}
+	if prior == nil {
+		prior = &bindingModel{}
+	}
+	if guard := m.Guard.ValueString(); guard != "" || prior.Guard.ValueString() != "" {
+		in.Guard = &guard
+	}
+	if !m.WhenEmpty.IsNull() && !m.WhenEmpty.IsUnknown() {
+		v := m.WhenEmpty.ValueFloat64()
+		in.WhenEmpty = &client.WhenEmpty{Value: &v}
+	} else if !prior.WhenEmpty.IsNull() && !prior.WhenEmpty.IsUnknown() {
+		in.WhenEmpty = &client.WhenEmpty{}
+	}
+	if onMap := m.OnMap.ValueBool(); onMap || prior.OnMap.ValueBool() {
+		in.OnMap = &onMap
+	}
 	return in
 }
 
@@ -268,7 +312,7 @@ func (r *bindingResource) Create(ctx context.Context, req resource.CreateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	b, err := r.client.CreateBinding(ctx, plan.input(ctx))
+	b, err := r.client.CreateBinding(ctx, plan.input(ctx, nil))
 	if err != nil {
 		if client.HasCode(err, client.CodeAlreadyExists) {
 			resp.Diagnostics.AddAttributeError(path.Root("name"), "Binding already exists",
@@ -311,7 +355,7 @@ func (r *bindingResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	b, err := r.client.UpdateBinding(ctx, state.ID.ValueString(), loadETag(ctx, req.Private), plan.input(ctx))
+	b, err := r.client.UpdateBinding(ctx, state.ID.ValueString(), loadETag(ctx, req.Private), plan.input(ctx, &state))
 	if err != nil {
 		apiError(&resp.Diagnostics, "Cannot update telemetry binding", err, bindingFields)
 		return

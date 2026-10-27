@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-27
+
+Works with Deed 0.1.0 or newer (service accounts need 0.2.0, kind map grouping 0.3.0, the new binding arguments 0.4.0).
+Tested against Deed v0.4.0.
+
+### Added
+
+- `deed_telemetry_binding`: `guard` (the binding applies to an entity only when this query returns data),
+  `when_empty` (the value of an empty scalar result) and `on_map` (show the value on the map's node cards). They need
+  Deed 0.4.0 and are sent only when set (or to remove them), so bindings without them keep working with older Deed.
+
 ## [0.4.0] - 2026-10-27
 
 Works with Deed 0.1.0 or newer (service accounts need 0.2.0, kind map grouping 0.3.0). Tested against Deed v0.3.2.
@@ -74,7 +85,8 @@ First release. Requires Deed 0.1.0 or newer (API `v1`) and Terraform 1.11 or new
 - `examples/` for every resource and data source, the `examples/homelab` scenario and generated `docs/`.
 - Release configuration for the Terraform Registry (GoReleaser, signed SHA256SUMS, registry manifest).
 
-[Unreleased]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.2.0...v0.3.1
 [0.3.0]: https://github.com/aurimasniekis/terraform-provider-deed/compare/v0.2.0...v0.3.0

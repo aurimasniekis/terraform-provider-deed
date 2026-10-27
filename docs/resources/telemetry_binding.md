@@ -13,7 +13,8 @@ A Deed telemetry binding: a named, admin-authored query template that users run 
 ## Example Usage
 
 ```terraform
-# Health from node_exporter: CPU busy per host (instance label = the entity's hostname).
+# Health from node_exporter: CPU busy per host (instance label = the entity's hostname), shown on the map's node
+# cards. The guard limits it to hosts node_exporter actually scrapes; others show "not applicable" instead of a value.
 resource "deed_telemetry_binding" "cpu" {
   name        = "host-cpu"
   title       = "CPU busy"
@@ -24,6 +25,24 @@ resource "deed_telemetry_binding" "cpu" {
   unit        = "percent"
   role        = "health"
   thresholds  = { warning = 80, critical = 95 }
+  guard       = "up{job=\"node\",instance=\"{{instance}}\"}"
+  on_map      = true
+}
+
+# Error ratio of a service; a service whose 5xx counter has no series yet reads 0 instead of "no data".
+resource "deed_telemetry_binding" "errors" {
+  name        = "http-error-ratio"
+  title       = "Errors"
+  integration = deed_integration.prometheus.name
+  kinds       = ["service"]
+  query       = "sum(rate(http_requests_total{service=\"{{svc}}\",code=~\"5..\"}[{{window}}])) / sum(rate(http_requests_total{service=\"{{svc}}\"}[{{window}}]))"
+  params      = [{ name = "svc", type = "label", from = "/metadata/name" }]
+  unit        = "ratio"
+  role        = "health"
+  thresholds  = { warning = 0.01, critical = 0.05 }
+  guard       = "http_requests_total{service=\"{{svc}}\"}"
+  when_empty  = 0
+  on_map      = true
 }
 
 # A chart: container memory (cAdvisor) by container name.
@@ -62,7 +81,9 @@ resource "deed_telemetry_binding" "caddy_rate" {
 ### Optional
 
 - `freshness_seconds` (Number) How long a result counts as fresh (15–86400, default 300).
+- `guard` (String) Applicability query with the same placeholders: the binding applies to an entity only when it returns data, otherwise the result is "not applicable" (no value, no health). For example `up{job="node",instance="{{instance}}"}` for "this host has node_exporter". Requires Deed 0.4.0 or later.
 - `kinds` (Set of String) Entity kinds the binding applies to. Omit for every kind.
+- `on_map` (Boolean) Show the value under the entity's node card on the map (`scalar` bindings with role `chart` or `health`; Deed draws up to six per entity). Default `false`. Requires Deed 0.4.0 or later.
 - `params` (Attributes List) Typed parameters (at most 16). (see [below for nested schema](#nestedatt--params))
 - `query` (String) Query template with `{{param}}` placeholders and the built-ins `{{window}}` and `{{step}}` (PromQL, LogQL, a Grafana search, …). Parameters are typed and validated before substitution.
 - `relationship_type` (String) Relationship type an `edge_rate` binding measures.
@@ -71,6 +92,7 @@ resource "deed_telemetry_binding" "caddy_rate" {
 - `thresholds` (Attributes) Warning and critical thresholds (required for `health`). (see [below for nested schema](#nestedatt--thresholds))
 - `title` (String) Title shown in the UI. Defaults to `name`.
 - `unit` (String) Display unit, e.g. `percent`, `bytes`, `req/s`.
+- `when_empty` (Number) Value of an empty result (after the guard passed) for `scalar` bindings, e.g. `0` for an error rate whose counter has no series yet; replaces `or vector(0)`. Requires Deed 0.4.0 or later.
 
 ### Read-Only
 

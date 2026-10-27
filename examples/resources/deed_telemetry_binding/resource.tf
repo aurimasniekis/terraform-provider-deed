@@ -1,4 +1,5 @@
-# Health from node_exporter: CPU busy per host (instance label = the entity's hostname).
+# Health from node_exporter: CPU busy per host (instance label = the entity's hostname), shown on the map's node
+# cards. The guard limits it to hosts node_exporter actually scrapes; others show "not applicable" instead of a value.
 resource "deed_telemetry_binding" "cpu" {
   name        = "host-cpu"
   title       = "CPU busy"
@@ -9,6 +10,24 @@ resource "deed_telemetry_binding" "cpu" {
   unit        = "percent"
   role        = "health"
   thresholds  = { warning = 80, critical = 95 }
+  guard       = "up{job=\"node\",instance=\"{{instance}}\"}"
+  on_map      = true
+}
+
+# Error ratio of a service; a service whose 5xx counter has no series yet reads 0 instead of "no data".
+resource "deed_telemetry_binding" "errors" {
+  name        = "http-error-ratio"
+  title       = "Errors"
+  integration = deed_integration.prometheus.name
+  kinds       = ["service"]
+  query       = "sum(rate(http_requests_total{service=\"{{svc}}\",code=~\"5..\"}[{{window}}])) / sum(rate(http_requests_total{service=\"{{svc}}\"}[{{window}}]))"
+  params      = [{ name = "svc", type = "label", from = "/metadata/name" }]
+  unit        = "ratio"
+  role        = "health"
+  thresholds  = { warning = 0.01, critical = 0.05 }
+  guard       = "http_requests_total{service=\"{{svc}}\"}"
+  when_empty  = 0
+  on_map      = true
 }
 
 # A chart: container memory (cAdvisor) by container name.

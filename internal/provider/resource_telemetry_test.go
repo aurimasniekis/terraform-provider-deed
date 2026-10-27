@@ -5,12 +5,34 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/aurimasniekis/terraform-provider-deed/internal/client"
 )
+
+// The Deed 0.4.0 fields are sent only when used, so bindings without them keep working against older Deed versions,
+// and to clear them on update.
+func TestBindingInputNewFields(t *testing.T) {
+	ctx := context.Background()
+	plain := bindingModel{Guard: types.StringNull(), WhenEmpty: types.Float64Null(), OnMap: types.BoolValue(false)}
+	in := plain.input(ctx, nil)
+	if in.Guard != nil || in.WhenEmpty != nil || in.OnMap != nil {
+		t.Fatalf("unused fields sent: %+v", in)
+	}
+	set := bindingModel{Guard: types.StringValue("up"), WhenEmpty: types.Float64Value(0), OnMap: types.BoolValue(true)}
+	in = set.input(ctx, nil)
+	if in.Guard == nil || *in.Guard != "up" || in.WhenEmpty == nil || in.WhenEmpty.Value == nil || *in.WhenEmpty.Value != 0 ||
+		in.OnMap == nil || !*in.OnMap {
+		t.Fatalf("set fields not sent: %+v", in)
+	}
+	in = plain.input(ctx, &set)
+	if in.Guard == nil || *in.Guard != "" || in.WhenEmpty == nil || in.WhenEmpty.Value != nil || in.OnMap == nil || *in.OnMap {
+		t.Fatalf("removed fields not cleared: %+v", in)
+	}
+}
 
 func telemetryConfig(name, integrationExtra, binding string) string {
 	return fmt.Sprintf(`
@@ -57,6 +79,9 @@ const healthBinding = `
   role  = "health"
   thresholds = { warning = 80, critical = 95 }
   freshness_seconds = 120
+  guard      = "up{job=\"node\",instance=\"{{instance}}\"}"
+  when_empty = 0
+  on_map     = true
 `
 
 const chartBinding = `
@@ -93,11 +118,17 @@ func TestAccTelemetry_lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr("data.deed_integrations.prom", "integrations.0.name", name),
 					resource.TestCheckResourceAttr("deed_telemetry_binding.edge", "role", "edge_rate"),
 					resource.TestCheckResourceAttr("deed_telemetry_binding.edge", "shape", "scalar"),
+					resource.TestCheckResourceAttr("deed_telemetry_binding.cpu", "guard", `up{job="node",instance="{{instance}}"}`),
+					resource.TestCheckResourceAttr("deed_telemetry_binding.cpu", "when_empty", "0"),
+					resource.TestCheckResourceAttr("deed_telemetry_binding.cpu", "on_map", "true"),
+					resource.TestCheckResourceAttr("deed_telemetry_binding.edge", "on_map", "false"),
+					resource.TestCheckNoResourceAttr("deed_telemetry_binding.edge", "guard"),
+					resource.TestCheckNoResourceAttr("deed_telemetry_binding.edge", "when_empty"),
 					capture("deed_telemetry_binding.cpu", "id", &bindingID),
 				),
 			},
 			{Config: telemetryConfig(name, "  secrets_wo = { token = \"glsa_acceptance\" }\n  secrets_wo_version = 1", healthBinding), ConfigPlanChecks: expectEmptyPlan()},
-			// Switch to a chart: thresholds, unit, title and the second kind are cleared, not kept.
+			// Switch to a chart: thresholds, unit, title, the second kind, the guard, when_empty and on_map are cleared, not kept.
 			{
 				Config:           telemetryConfig(name, "  enabled = false\n  secrets_wo_version = 2", chartBinding),
 				ConfigPlanChecks: expectAction("deed_telemetry_binding.cpu", plancheck.ResourceActionUpdate),
@@ -109,12 +140,15 @@ func TestAccTelemetry_lifecycle(t *testing.T) {
 					resource.TestCheckNoResourceAttr("deed_telemetry_binding.cpu", "thresholds"),
 					resource.TestCheckNoResourceAttr("deed_telemetry_binding.cpu", "unit"),
 					resource.TestCheckResourceAttr("deed_telemetry_binding.cpu", "kinds.#", "1"),
+					resource.TestCheckNoResourceAttr("deed_telemetry_binding.cpu", "guard"),
+					resource.TestCheckNoResourceAttr("deed_telemetry_binding.cpu", "when_empty"),
+					resource.TestCheckResourceAttr("deed_telemetry_binding.cpu", "on_map", "false"),
 					apiCheck(t, func(ctx context.Context, c *client.Client, _ *terraform.State) error {
 						b, err := c.GetBinding(ctx, name+"-cpu")
 						if err != nil {
 							return err
 						}
-						if b.Unit != "" || b.Thresholds.Critical != nil || len(b.Kinds) != 1 {
+						if b.Unit != "" || b.Thresholds.Critical != nil || len(b.Kinds) != 1 || b.Guard != "" || b.WhenEmpty != nil || b.OnMap {
 							return fmt.Errorf("cleared fields kept: %+v", b)
 						}
 						return nil
